@@ -14,6 +14,7 @@ import PredictionsTab from "@/components/group/PredictionsTab";
 import LeaderboardTab from "@/components/group/LeaderboardTab";
 import MembersTab from "@/components/group/MembersTab";
 import MemberPredictionsView from "@/components/group/MemberPredictionsView";
+import EditGroupModal from "@/components/group/EditGroupModal";
 
 const tierLabels: Record<string, string> = {
   basico: "Básico",
