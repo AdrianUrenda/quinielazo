@@ -3,28 +3,18 @@ import { Button } from "@/components/ui/button";
 import { Check, Star } from "lucide-react";
 import { Link } from "react-router-dom";
 
+const sharedFeatures = [
+  "Predicciones ilimitadas durante el torneo",
+  "Tabla de posiciones del grupo",
+  "Notificaciones de partidos y resultados",
+  "Link de invitación para compartir",
+  "Acceso al Grupo Demo de Liga MX",
+];
+
 const tiers = [
-  {
-    name: "Básico",
-    price: "$49",
-    members: "Hasta 10 miembros",
-    popular: false,
-    features: ["Predicciones ilimitadas", "Tabla de posiciones", "Notificaciones", "Link de invitación"],
-  },
-  {
-    name: "Familiar",
-    price: "$99",
-    members: "Hasta 20 miembros",
-    popular: true,
-    features: ["Todo en Básico", "Estadísticas detalladas", "Notificaciones por email", "Soporte prioritario"],
-  },
-  {
-    name: "Grande",
-    price: "$199",
-    members: "Sin límite de miembros",
-    popular: false,
-    features: ["Todo en Familiar", "Ideal para oficinas", "Grupos grandes", "Administración avanzada"],
-  },
+  { name: "Básico", price: "$49", members: "Hasta 10 miembros", popular: false, features: sharedFeatures },
+  { name: "Familiar", price: "$99", members: "Hasta 20 miembros", popular: true, features: sharedFeatures },
+  { name: "Grande", price: "$199", members: "21 miembros o más", popular: false, features: sharedFeatures },
 ];
 
 const Pricing = () => {
@@ -38,7 +28,7 @@ const Pricing = () => {
           className="text-center mb-16"
         >
           <h2 className="text-4xl md:text-6xl font-display text-foreground mb-4 tracking-wide">
-            ELIGE TU PLAN
+            CREA TU GRUPO
           </h2>
           <p className="text-lg text-muted-foreground font-body max-w-2xl mx-auto">
             Pago único por todo el Mundial. Sin suscripciones ni cargos recurrentes.
