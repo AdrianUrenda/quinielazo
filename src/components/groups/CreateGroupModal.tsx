@@ -68,7 +68,11 @@ const CreateGroupModal = ({ open, onOpenChange }: Props) => {
       if (error) throw error;
 
       if (data?.url) {
-        window.location.href = data.url;
+        // Use window.open as fallback for iframe environments (e.g. Lovable preview)
+        const opened = window.open(data.url, "_blank");
+        if (!opened) {
+          window.location.href = data.url;
+        }
       } else {
         throw new Error("No se recibió URL de pago");
       }
