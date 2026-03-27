@@ -11,10 +11,13 @@ import Navbar from "@/components/landing/Navbar";
 import Footer from "@/components/landing/Footer";
 import DemoPredictionsTab from "@/components/demo/DemoPredictionsTab";
 import DemoLeaderboardTab from "@/components/demo/DemoLeaderboardTab";
+import DemoMembersTab from "@/components/demo/DemoMembersTab";
+import DemoMemberPredictionsView from "@/components/demo/DemoMemberPredictionsView";
 
 const DemoGroup = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
+  const [viewingMember, setViewingMember] = useState<{ id: string; name: string } | null>(null);
 
   const { data: membership, isLoading: memberLoading } = useQuery({
     queryKey: ["demo-membership", user?.id],
@@ -87,12 +90,15 @@ const DemoGroup = () => {
 
           {/* Tabs */}
           <Tabs defaultValue="predictions" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-2 h-12">
+            <TabsList className="grid w-full grid-cols-3 h-12">
               <TabsTrigger value="predictions" className="font-display tracking-wider text-xs gap-1.5">
                 <ClipboardList className="w-4 h-4" /> PARTIDOS
               </TabsTrigger>
               <TabsTrigger value="leaderboard" className="font-display tracking-wider text-xs gap-1.5">
                 <BarChart3 className="w-4 h-4" /> POSICIONES
+              </TabsTrigger>
+              <TabsTrigger value="members" className="font-display tracking-wider text-xs gap-1.5">
+                <Users className="w-4 h-4" /> MIEMBROS
               </TabsTrigger>
             </TabsList>
 
@@ -102,6 +108,20 @@ const DemoGroup = () => {
 
             <TabsContent value="leaderboard">
               <DemoLeaderboardTab currentUserId={user.id} />
+            </TabsContent>
+
+            <TabsContent value="members">
+              {viewingMember ? (
+                <DemoMemberPredictionsView
+                  memberId={viewingMember.id}
+                  memberName={viewingMember.name}
+                  onBack={() => setViewingMember(null)}
+                />
+              ) : (
+                <DemoMembersTab
+                  onViewPredictions={(userId, displayName) => setViewingMember({ id: userId, name: displayName })}
+                />
+              )}
             </TabsContent>
           </Tabs>
         </div>
