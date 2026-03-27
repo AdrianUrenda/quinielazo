@@ -6,7 +6,7 @@ const Terms = () => {
     <div className="min-h-screen flex flex-col bg-background text-foreground">
       <Navbar />
       <main className="flex-1 pt-24 pb-16">
-        <div className="container max-w-[800px] mx-auto px-4 font-body">
+        <div className="container max-w-[800px] mx-auto px-4 font-body text-foreground">
           <h1 className="font-display text-3xl md:text-4xl text-primary-foreground mb-2 tracking-wider">
             TÉRMINOS Y CONDICIONES DE USO
           </h1>
