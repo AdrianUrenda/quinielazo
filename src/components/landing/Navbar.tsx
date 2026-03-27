@@ -1,12 +1,14 @@
 import { Button } from "@/components/ui/button";
-import { Trophy, Bell } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Trophy, Bell, LogOut } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const Navbar = () => {
   const { user, loading } = useAuth();
+  const navigate = useNavigate();
 
   const { data: unreadCount } = useQuery({
     queryKey: ["unread-notifications", user?.id],
@@ -21,6 +23,12 @@ const Navbar = () => {
     enabled: !!user,
     refetchInterval: 30000,
   });
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    toast.success("Sesión cerrada");
+    navigate("/");
+  };
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-navy/90 backdrop-blur-md border-b border-primary-foreground/10">
@@ -47,6 +55,14 @@ const Navbar = () => {
                   </span>
                 )}
               </Link>
+              <Button
+                size="sm"
+                onClick={handleLogout}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90 font-body text-xs gap-1.5"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                Cerrar sesión
+              </Button>
             </>
           ) : !loading ? (
             <>
@@ -73,6 +89,13 @@ const Navbar = () => {
               </Link>
               <Button variant="hero" size="sm" asChild>
                 <Link to="/groups">Mis Grupos</Link>
+              </Button>
+              <Button
+                size="icon"
+                onClick={handleLogout}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90 h-9 w-9"
+              >
+                <LogOut className="w-4 h-4" />
               </Button>
             </>
           ) : !loading ? (
