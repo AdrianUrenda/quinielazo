@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,6 +13,7 @@ import Footer from "@/components/landing/Footer";
 import PredictionsTab from "@/components/group/PredictionsTab";
 import LeaderboardTab from "@/components/group/LeaderboardTab";
 import MembersTab from "@/components/group/MembersTab";
+import MemberPredictionsView from "@/components/group/MemberPredictionsView";
 
 const tierLabels: Record<string, string> = {
   basico: "Básico",
@@ -23,6 +25,7 @@ const GroupDashboard = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
+  const [viewingMember, setViewingMember] = useState<{ id: string; name: string } | null>(null);
 
   const { data: group, isLoading: groupLoading } = useQuery({
     queryKey: ["group", id],
@@ -150,7 +153,20 @@ const GroupDashboard = () => {
               </TabsContent>
 
               <TabsContent value="members">
-                <MembersTab groupId={group.id} isAdmin={isAdmin} />
+                {viewingMember ? (
+                  <MemberPredictionsView
+                    groupId={group.id}
+                    memberId={viewingMember.id}
+                    memberName={viewingMember.name}
+                    onBack={() => setViewingMember(null)}
+                  />
+                ) : (
+                  <MembersTab
+                    groupId={group.id}
+                    isAdmin={isAdmin}
+                    onViewPredictions={(userId, displayName) => setViewingMember({ id: userId, name: displayName })}
+                  />
+                )}
               </TabsContent>
             </Tabs>
           )}
