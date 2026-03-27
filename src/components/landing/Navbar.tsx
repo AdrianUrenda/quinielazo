@@ -47,7 +47,7 @@ const Navbar = () => {
               <Link to="/groups" className="text-sm font-body text-primary-foreground/70 hover:text-primary-foreground transition-colors">
                 Mis Grupos
               </Link>
-              <Link to="/groups" className="relative text-primary-foreground/70 hover:text-primary-foreground transition-colors">
+              <Link to="/notifications" className="relative text-primary-foreground/70 hover:text-primary-foreground transition-colors">
                 <Bell className="w-5 h-5" />
                 {(unreadCount ?? 0) > 0 && (
                   <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center">
@@ -79,7 +79,7 @@ const Navbar = () => {
         <div className="md:hidden flex items-center gap-3">
           {!loading && user ? (
             <>
-              <Link to="/groups" className="relative text-primary-foreground/70 hover:text-primary-foreground">
+              <Link to="/notifications" className="relative text-primary-foreground/70 hover:text-primary-foreground">
                 <Bell className="w-5 h-5" />
                 {(unreadCount ?? 0) > 0 && (
                   <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center">
