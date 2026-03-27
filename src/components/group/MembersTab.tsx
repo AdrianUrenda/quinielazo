@@ -108,16 +108,16 @@ const MembersTab = ({ groupId, isAdmin }: Props) => {
         <Badge variant={sc.variant} className="text-[10px] shrink-0">{sc.label}</Badge>
         {isAdmin && m.status === "pending" && (
           <div className="flex gap-1 shrink-0">
-            <Button size="icon" variant="ghost" className="h-7 w-7 text-primary" onClick={() => updateStatus.mutate({ memberId: m.id, status: "approved" })}>
+            <Button size="icon" variant="ghost" className="h-7 w-7 text-primary" onClick={() => updateStatus.mutate({ memberId: m.id, userId: m.user_id, status: "approved" })}>
               <CheckCircle className="w-4 h-4" />
             </Button>
-            <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => updateStatus.mutate({ memberId: m.id, status: "rejected" })}>
+            <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => updateStatus.mutate({ memberId: m.id, userId: m.user_id, status: "rejected" })}>
               <XCircle className="w-4 h-4" />
             </Button>
           </div>
         )}
         {isAdmin && m.status === "approved" && (
-          <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground shrink-0" onClick={() => updateStatus.mutate({ memberId: m.id, status: "removed" })}>
+          <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground shrink-0" onClick={() => updateStatus.mutate({ memberId: m.id, userId: m.user_id, status: "removed" })}>
             <UserX className="w-4 h-4" />
           </Button>
         )}
