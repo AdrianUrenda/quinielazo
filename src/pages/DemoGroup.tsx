@@ -17,6 +17,7 @@ import DemoMemberPredictionsView from "@/components/demo/DemoMemberPredictionsVi
 const DemoGroup = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
+  const [viewingMember, setViewingMember] = useState<{ id: string; name: string } | null>(null);
 
   const { data: membership, isLoading: memberLoading } = useQuery({
     queryKey: ["demo-membership", user?.id],
