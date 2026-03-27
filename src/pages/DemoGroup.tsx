@@ -75,7 +75,7 @@ const DemoGroup = () => {
                     GRUPO DEMO — LIGA MX
                   </h1>
                   <p className="text-sm text-muted-foreground font-body mt-1">
-                    Clausura 2025 · {memberCount} participantes
+                    Apertura 2024 · {memberCount} participantes
                   </p>
                 </div>
                 <Badge className="bg-purple-500/10 text-purple-600 border-purple-500/20 font-display text-xs shrink-0">
