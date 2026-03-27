@@ -182,6 +182,13 @@ const GroupDashboard = () => {
         </div>
       </div>
       <Footer />
+      {isAdmin && group && (
+        <EditGroupModal
+          open={editOpen}
+          onOpenChange={setEditOpen}
+          group={{ id: group.id, name: group.name, description: group.description, access_code: group.access_code }}
+        />
+      )}
     </div>
   );
 };
