@@ -1,0 +1,1 @@
+UPDATE demo_matches SET status = 'upcoming', home_score = NULL, away_score = NULL WHERE id IN (SELECT id FROM demo_matches ORDER BY kickoff_utc DESC LIMIT 20);
