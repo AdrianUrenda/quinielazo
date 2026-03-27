@@ -43,12 +43,31 @@ const MembersTab = ({ groupId, isAdmin }: Props) => {
   });
 
   const updateStatus = useMutation({
-    mutationFn: async ({ memberId, status }: { memberId: string; status: string }) => {
+    mutationFn: async ({ memberId, userId, status }: { memberId: string; userId: string; status: string }) => {
       const { error } = await supabase
         .from("group_members")
         .update({ status: status as any })
         .eq("id", memberId);
       if (error) throw error;
+
+      // Send notification to user
+      const { data: groupData } = await supabase.from("groups").select("name").eq("id", groupId).single();
+      const groupName = groupData?.name || "el grupo";
+      if (status === "approved") {
+        await supabase.from("notifications").insert({
+          user_id: userId,
+          type: "join_approved" as any,
+          message: `Tu solicitud para unirte a ${groupName} fue aprobada. ¡Ya puedes participar!`,
+          metadata: { group_id: groupId },
+        });
+      } else if (status === "rejected") {
+        await supabase.from("notifications").insert({
+          user_id: userId,
+          type: "join_rejected" as any,
+          message: `Tu solicitud para unirte a ${groupName} no fue aprobada.`,
+          metadata: { group_id: groupId },
+        });
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["group-members", groupId] });
