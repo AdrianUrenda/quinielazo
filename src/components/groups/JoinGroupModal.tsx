@@ -38,22 +38,17 @@ const JoinGroupModal = ({ open, onOpenChange, preSelectedGroupId, preFilledCode 
     enabled: open,
   });
 
-  // Get member counts
-  const { data: memberCounts } = useQuery({
-    queryKey: ["group-member-counts"],
+  // Get member count for selected group via security definer function
+  const { data: memberCount } = useQuery({
+    queryKey: ["group-member-count", selectedGroupId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("group_members")
-        .select("group_id")
-        .in("status", ["approved", "pending"]);
-      if (error) throw error;
-      const counts: Record<string, number> = {};
-      data.forEach((m) => {
-        counts[m.group_id] = (counts[m.group_id] || 0) + 1;
+      const { data, error } = await supabase.rpc("get_group_member_count" as any, {
+        _group_id: selectedGroupId!,
       });
-      return counts;
+      if (error) throw error;
+      return (data as number) || 0;
     },
-    enabled: open,
+    enabled: !!selectedGroupId,
   });
 
   // Check existing membership
@@ -83,7 +78,7 @@ const JoinGroupModal = ({ open, onOpenChange, preSelectedGroupId, preFilledCode 
   }, [allGroups, search]);
 
   const selectedGroup = allGroups?.find((g) => g.id === selectedGroupId);
-  const memberCount = selectedGroupId ? (memberCounts?.[selectedGroupId] || 0) : 0;
+  const currentMemberCount = memberCount ?? 0;
 
   const handleSubmit = async () => {
     if (!selectedGroup || !user) return;
@@ -98,7 +93,7 @@ const JoinGroupModal = ({ open, onOpenChange, preSelectedGroupId, preFilledCode 
       setError("Ya tienes una solicitud pendiente para este grupo.");
       return;
     }
-    if (memberCount >= selectedGroup.max_members) {
+    if (currentMemberCount >= selectedGroup.max_members) {
       setError("Este grupo ha alcanzado su límite de miembros.");
       return;
     }
@@ -234,7 +229,7 @@ const JoinGroupModal = ({ open, onOpenChange, preSelectedGroupId, preFilledCode 
                     </div>
                     <div className="flex items-center gap-1 text-xs text-muted-foreground font-body">
                       <Users className="w-3.5 h-3.5" />
-                      <span>{memberCount} / {selectedGroup.max_members === 999 ? "∞" : selectedGroup.max_members} miembros</span>
+                      <span>{currentMemberCount} / {selectedGroup.max_members === 999 ? "∞" : selectedGroup.max_members} miembros</span>
                     </div>
                   </div>
 
