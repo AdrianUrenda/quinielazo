@@ -405,6 +405,14 @@ export type Database = {
       }
     }
     Functions: {
+      is_group_admin: {
+        Args: { _group_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_group_member: {
+        Args: { _group_id: string; _user_id: string }
+        Returns: boolean
+      }
       validate_group_access_code: {
         Args: { _code: string; _group_id: string }
         Returns: boolean
