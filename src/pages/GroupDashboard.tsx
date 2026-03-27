@@ -27,6 +27,7 @@ const GroupDashboard = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const [viewingMember, setViewingMember] = useState<{ id: string; name: string } | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
 
   const { data: group, isLoading: groupLoading } = useQuery({
     queryKey: ["group", id],
