@@ -14,6 +14,110 @@ export type Database = {
   }
   public: {
     Tables: {
+      demo_group_members: {
+        Row: {
+          id: string
+          joined_at: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          joined_at?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          joined_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      demo_matches: {
+        Row: {
+          api_fixture_id: number
+          away_score: number | null
+          away_team: string
+          away_team_logo: string | null
+          city: string | null
+          home_score: number | null
+          home_team: string
+          home_team_logo: string | null
+          id: string
+          kickoff_utc: string
+          last_synced_at: string | null
+          stadium: string | null
+          status: string
+        }
+        Insert: {
+          api_fixture_id: number
+          away_score?: number | null
+          away_team: string
+          away_team_logo?: string | null
+          city?: string | null
+          home_score?: number | null
+          home_team: string
+          home_team_logo?: string | null
+          id?: string
+          kickoff_utc: string
+          last_synced_at?: string | null
+          stadium?: string | null
+          status?: string
+        }
+        Update: {
+          api_fixture_id?: number
+          away_score?: number | null
+          away_team?: string
+          away_team_logo?: string | null
+          city?: string | null
+          home_score?: number | null
+          home_team?: string
+          home_team_logo?: string | null
+          id?: string
+          kickoff_utc?: string
+          last_synced_at?: string | null
+          stadium?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
+      demo_predictions: {
+        Row: {
+          demo_match_id: string
+          id: string
+          points_awarded: number | null
+          predicted_away_score: number
+          predicted_home_score: number
+          submitted_at: string
+          user_id: string
+        }
+        Insert: {
+          demo_match_id: string
+          id?: string
+          points_awarded?: number | null
+          predicted_away_score?: number
+          predicted_home_score?: number
+          submitted_at?: string
+          user_id: string
+        }
+        Update: {
+          demo_match_id?: string
+          id?: string
+          points_awarded?: number | null
+          predicted_away_score?: number
+          predicted_home_score?: number
+          submitted_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "demo_predictions_demo_match_id_fkey"
+            columns: ["demo_match_id"]
+            isOneToOne: false
+            referencedRelation: "demo_matches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       group_members: {
         Row: {
           group_id: string
