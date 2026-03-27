@@ -38,22 +38,17 @@ const JoinGroupModal = ({ open, onOpenChange, preSelectedGroupId, preFilledCode 
     enabled: open,
   });
 
-  // Get member counts
-  const { data: memberCounts } = useQuery({
-    queryKey: ["group-member-counts"],
+  // Get member count for selected group via security definer function
+  const { data: memberCount } = useQuery({
+    queryKey: ["group-member-count", selectedGroupId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("group_members")
-        .select("group_id")
-        .in("status", ["approved", "pending"]);
-      if (error) throw error;
-      const counts: Record<string, number> = {};
-      data.forEach((m) => {
-        counts[m.group_id] = (counts[m.group_id] || 0) + 1;
+      const { data, error } = await supabase.rpc("get_group_member_count" as any, {
+        _group_id: selectedGroupId!,
       });
-      return counts;
+      if (error) throw error;
+      return (data as number) || 0;
     },
-    enabled: open,
+    enabled: !!selectedGroupId,
   });
 
   // Check existing membership
