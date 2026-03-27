@@ -54,36 +54,26 @@ const CreateGroupModal = ({ open, onOpenChange }: Props) => {
 
     setLoading(true);
     try {
-      // TODO: Integrate Stripe payment here before creating the group
-      // For now, create the group directly
-      const { data, error } = await supabase
-        .from("groups")
-        .insert({
+      const { data, error } = await supabase.functions.invoke("create-checkout-session", {
+        body: {
           name: name.trim(),
           description: description.trim() || null,
           access_code: accessCode.trim() || null,
           tier,
-          max_members: maxMembersMap[tier],
-          admin_user_id: user.id,
-        })
-        .select()
-        .single();
+          success_url: `${window.location.origin}/my-groups?payment=success`,
+          cancel_url: `${window.location.origin}/my-groups?payment=cancelled`,
+        },
+      });
 
       if (error) throw error;
 
-      // Add creator as approved member
-      await supabase.from("group_members").insert({
-        group_id: data.id,
-        user_id: user.id,
-        status: "approved" as any,
-      });
-
-      const inviteLink = `${window.location.origin}/join/${data.id}${accessCode ? `?code=${accessCode}` : ""}`;
-      setSuccess({ groupId: data.id, inviteLink });
-      queryClient.invalidateQueries({ queryKey: ["my-groups"] });
+      if (data?.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error("No se recibió URL de pago");
+      }
     } catch (err: any) {
-      toast.error(err.message || "Error al crear el grupo");
-    } finally {
+      toast.error(err.message || "Error al iniciar el pago");
       setLoading(false);
     }
   };
