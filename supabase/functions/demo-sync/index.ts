@@ -42,11 +42,12 @@ Deno.serve(async (req) => {
     const action = url.searchParams.get("action");
 
     if (action === "sync-fixtures") {
-      const resp = await fetch(
-        `${API_BASE}/fixtures?league=${LEAGUE_ID}&season=${SEASON}&status=NS`,
-        { headers: { "x-apisports-key": apiKey } }
-      );
+      const apiUrl = `${API_BASE}/fixtures?league=${LEAGUE_ID}&season=${SEASON}&status=NS`;
+      console.log("Fetching fixtures from:", apiUrl);
+      const resp = await fetch(apiUrl, { headers: { "x-apisports-key": apiKey } });
       const data = await resp.json();
+      console.log("API response errors:", JSON.stringify(data.errors));
+      console.log("API response results:", data.results, "paging:", JSON.stringify(data.paging));
       const fixtures = data.response || [];
 
       const rows = fixtures.map((f: any) => ({
