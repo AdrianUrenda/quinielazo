@@ -27,13 +27,13 @@ const JoinGroupModal = ({ open, onOpenChange, preSelectedGroupId, preFilledCode 
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
 
-  // Fetch all groups for search
+  // Fetch groups via safe discovery view (no access_code exposed)
   const { data: allGroups } = useQuery({
     queryKey: ["all-groups"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("groups").select("id, name, description, max_members, access_code, tier").order("name");
+      const { data, error } = await supabase.from("groups_discovery" as any).select("id, name, description, max_members, has_access_code, tier").order("name");
       if (error) throw error;
-      return data;
+      return data as { id: string; name: string; description: string | null; max_members: number; has_access_code: boolean; tier: string }[];
     },
     enabled: open,
   });

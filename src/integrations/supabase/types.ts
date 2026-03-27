@@ -151,6 +151,13 @@ export type Database = {
             referencedRelation: "groups"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "group_members_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups_discovery"
+            referencedColumns: ["id"]
+          },
         ]
       }
       groups: {
@@ -319,6 +326,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "predictions_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups_discovery"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "predictions_match_id_fkey"
             columns: ["match_id"]
             isOneToOne: false
@@ -356,10 +370,45 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      groups_discovery: {
+        Row: {
+          admin_user_id: string | null
+          created_at: string | null
+          description: string | null
+          has_access_code: boolean | null
+          id: string | null
+          max_members: number | null
+          name: string | null
+          tier: Database["public"]["Enums"]["group_tier"] | null
+        }
+        Insert: {
+          admin_user_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          has_access_code?: never
+          id?: string | null
+          max_members?: number | null
+          name?: string | null
+          tier?: Database["public"]["Enums"]["group_tier"] | null
+        }
+        Update: {
+          admin_user_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          has_access_code?: never
+          id?: string | null
+          max_members?: number | null
+          name?: string | null
+          tier?: Database["public"]["Enums"]["group_tier"] | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
-      [_ in never]: never
+      validate_group_access_code: {
+        Args: { _code: string; _group_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       group_tier: "basico" | "familiar" | "grande"
