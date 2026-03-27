@@ -249,21 +249,24 @@ const DemoAdmin = () => {
                                         [match.id]: { home: prev[match.id]?.home || "", away: e.target.value }
                                       }))}
                                     />
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      className="h-8 px-2 ml-1"
-                                      disabled={updateScore.isPending}
-                                      onClick={() => handleSubmitScore(match.id)}
-                                    >
-                                      <Check className="w-3 h-3" />
-                                    </Button>
                                   </div>
                                 )}
 
                                 <div className="flex-1">
                                   <span className="text-sm font-body font-semibold text-foreground">{match.away_team}</span>
                                 </div>
+
+                                {!isFinished && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-8 px-2 ml-2 shrink-0"
+                                    disabled={updateScore.isPending}
+                                    onClick={() => handleSubmitScore(match.id)}
+                                  >
+                                    <Check className="w-3 h-3" />
+                                  </Button>
+                                )}
                               </div>
                             </div>
                           );
