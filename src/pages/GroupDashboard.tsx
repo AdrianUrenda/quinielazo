@@ -106,7 +106,14 @@ const GroupDashboard = () => {
                   <h1 className="text-3xl md:text-4xl font-display text-foreground tracking-wide">{group.name}</h1>
                   {group.description && <p className="text-sm text-muted-foreground font-body mt-1">{group.description}</p>}
                 </div>
-                <Badge variant="secondary" className="font-display text-xs shrink-0">{tierLabels[group.tier] || group.tier}</Badge>
+                <div className="flex items-center gap-2 shrink-0">
+                  {isAdmin && (
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => setEditOpen(true)}>
+                      <Settings className="w-4 h-4" />
+                    </Button>
+                  )}
+                  <Badge variant="secondary" className="font-display text-xs">{tierLabels[group.tier] || group.tier}</Badge>
+                </div>
               </div>
 
               {isAdmin && group.invite_code && (
