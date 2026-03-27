@@ -8,11 +8,12 @@ import { Badge } from "@/components/ui/badge";
 import { CheckCircle, XCircle, Bell, Users, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { Navigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 
 const Notifications = () => {
   const { user, loading: authLoading } = useAuth();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   // Fetch groups where user is admin
   const { data: adminGroups } = useQuery({
@@ -335,7 +336,14 @@ const Notifications = () => {
                     n.is_read
                       ? "border-border bg-card"
                       : "border-primary/30 bg-primary/5"
-                  }`}
+                  } ${(n.metadata as any)?.group_id ? "cursor-pointer hover:bg-accent/50" : ""}`}
+                  onClick={() => {
+                    const groupId = (n.metadata as any)?.group_id;
+                    if (groupId) {
+                      if (!n.is_read) markRead.mutate([n.id]);
+                      navigate(`/group/${groupId}`);
+                    }
+                  }}
                 >
                   <p className="text-sm font-body text-foreground">
                     {n.message}
