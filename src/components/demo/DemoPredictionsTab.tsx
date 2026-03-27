@@ -110,6 +110,15 @@ const DemoPredictionsTab = ({ userId }: Props) => {
   const live = matches.filter((m: any) => m.status === "live");
   const finished = matches.filter((m: any) => m.status === "finished");
 
+  // Group upcoming by jornada
+  const upcomingByJornada = upcoming.reduce((acc: Record<number, any[]>, m: any) => {
+    const j = m.jornada || 0;
+    if (!acc[j]) acc[j] = [];
+    acc[j].push(m);
+    return acc;
+  }, {});
+  const upcomingJornadas = Object.keys(upcomingByJornada).map(Number).sort((a, b) => a - b);
+
   return (
     <div className="space-y-6">
       {/* Live matches */}
