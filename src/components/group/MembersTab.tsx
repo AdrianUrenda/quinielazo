@@ -43,12 +43,31 @@ const MembersTab = ({ groupId, isAdmin }: Props) => {
   });
 
   const updateStatus = useMutation({
-    mutationFn: async ({ memberId, status }: { memberId: string; status: string }) => {
+    mutationFn: async ({ memberId, userId, status }: { memberId: string; userId: string; status: string }) => {
       const { error } = await supabase
         .from("group_members")
         .update({ status: status as any })
         .eq("id", memberId);
       if (error) throw error;
+
+      // Send notification to user
+      const { data: groupData } = await supabase.from("groups").select("name").eq("id", groupId).single();
+      const groupName = groupData?.name || "el grupo";
+      if (status === "approved") {
+        await supabase.from("notifications").insert({
+          user_id: userId,
+          type: "join_approved" as any,
+          message: `Tu solicitud para unirte a ${groupName} fue aprobada. ¡Ya puedes participar!`,
+          metadata: { group_id: groupId },
+        });
+      } else if (status === "rejected") {
+        await supabase.from("notifications").insert({
+          user_id: userId,
+          type: "join_rejected" as any,
+          message: `Tu solicitud para unirte a ${groupName} no fue aprobada.`,
+          metadata: { group_id: groupId },
+        });
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["group-members", groupId] });
@@ -89,16 +108,16 @@ const MembersTab = ({ groupId, isAdmin }: Props) => {
         <Badge variant={sc.variant} className="text-[10px] shrink-0">{sc.label}</Badge>
         {isAdmin && m.status === "pending" && (
           <div className="flex gap-1 shrink-0">
-            <Button size="icon" variant="ghost" className="h-7 w-7 text-primary" onClick={() => updateStatus.mutate({ memberId: m.id, status: "approved" })}>
+            <Button size="icon" variant="ghost" className="h-7 w-7 text-primary" onClick={() => updateStatus.mutate({ memberId: m.id, userId: m.user_id, status: "approved" })}>
               <CheckCircle className="w-4 h-4" />
             </Button>
-            <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => updateStatus.mutate({ memberId: m.id, status: "rejected" })}>
+            <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => updateStatus.mutate({ memberId: m.id, userId: m.user_id, status: "rejected" })}>
               <XCircle className="w-4 h-4" />
             </Button>
           </div>
         )}
         {isAdmin && m.status === "approved" && (
-          <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground shrink-0" onClick={() => updateStatus.mutate({ memberId: m.id, status: "removed" })}>
+          <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground shrink-0" onClick={() => updateStatus.mutate({ memberId: m.id, userId: m.user_id, status: "removed" })}>
             <UserX className="w-4 h-4" />
           </Button>
         )}
