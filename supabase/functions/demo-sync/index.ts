@@ -42,13 +42,19 @@ Deno.serve(async (req) => {
     const action = url.searchParams.get("action");
 
     if (action === "sync-fixtures") {
-      const apiUrl = `${API_BASE}/fixtures?league=${LEAGUE_ID}&season=${SEASON}&status=NS`;
+      const apiUrl = `${API_BASE}/fixtures?league=${LEAGUE_ID}&season=${SEASON}`;
       console.log("Fetching fixtures from:", apiUrl);
       const resp = await fetch(apiUrl, { headers: { "x-apisports-key": apiKey } });
       const data = await resp.json();
       console.log("API response errors:", JSON.stringify(data.errors));
-      console.log("API response results:", data.results, "paging:", JSON.stringify(data.paging));
+      console.log("API response results:", data.results);
       const fixtures = data.response || [];
+
+      const mapStatus = (short: string) => {
+        if (["NS", "TBD"].includes(short)) return "upcoming";
+        if (["1H", "2H", "HT", "ET", "BT", "P", "LIVE"].includes(short)) return "live";
+        return "finished";
+      };
 
       const rows = fixtures.map((f: any) => ({
         api_fixture_id: f.fixture.id,
@@ -59,7 +65,9 @@ Deno.serve(async (req) => {
         kickoff_utc: f.fixture.date,
         stadium: f.fixture.venue?.name || "",
         city: f.fixture.venue?.city || "",
-        status: "upcoming",
+        status: mapStatus(f.fixture.status?.short || "NS"),
+        home_score: f.goals?.home ?? null,
+        away_score: f.goals?.away ?? null,
         last_synced_at: new Date().toISOString(),
       }));
 
