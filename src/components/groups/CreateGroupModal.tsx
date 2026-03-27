@@ -60,8 +60,8 @@ const CreateGroupModal = ({ open, onOpenChange }: Props) => {
           description: description.trim() || null,
           access_code: accessCode.trim() || null,
           tier,
-          success_url: `${window.location.origin}/my-groups?payment=success`,
-          cancel_url: `${window.location.origin}/my-groups?payment=cancelled`,
+          success_url: `${window.location.origin}/groups?payment=success`,
+          cancel_url: `${window.location.origin}/groups?payment=cancelled`,
         },
       });
 

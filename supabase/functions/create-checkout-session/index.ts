@@ -1,5 +1,4 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
-import Stripe from "https://esm.sh/stripe@17.7.0?target=deno";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -8,9 +7,9 @@ const corsHeaders = {
 };
 
 const priceMap: Record<string, number> = {
-  basico: 4900,   // $49 MXN in centavos
-  familiar: 9900, // $99 MXN
-  grande: 19900,  // $199 MXN
+  basico: 4900,
+  familiar: 9900,
+  grande: 19900,
 };
 
 const tierLabels: Record<string, string> = {
@@ -31,14 +30,10 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
-      apiVersion: "2024-12-18.acacia",
-    });
-
+    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY")!;
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-    // Authenticate user
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "No autorizado" }), {
@@ -59,7 +54,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Parse and validate input
     const body = await req.json();
     const { name, description, access_code, tier, success_url, cancel_url } = body;
 
@@ -84,35 +78,46 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Create Stripe Checkout Session
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ["card"],
+    // Use Stripe REST API directly to avoid esm.sh/Deno compatibility issues
+    const sessionPayload = {
+      "payment_method_types[]": "card",
       mode: "payment",
       currency: "mxn",
-      line_items: [
-        {
-          price_data: {
-            currency: "mxn",
-            product_data: {
-              name: `Quiniela – ${tierLabels[tier]}`,
-              description: `Grupo: ${name.trim()}`,
-            },
-            unit_amount: priceMap[tier],
-          },
-          quantity: 1,
-        },
-      ],
-      metadata: {
-        user_id: user.id,
-        group_name: name.trim(),
-        group_description: description?.trim() || "",
-        access_code: access_code?.trim() || "",
-        tier,
-        max_members: String(maxMembersMap[tier]),
+      "line_items[0][price_data][currency]": "mxn",
+      "line_items[0][price_data][product_data][name]": `Quiniela – ${tierLabels[tier]}`,
+      "line_items[0][price_data][product_data][description]": `Grupo: ${name.trim()}`,
+      "line_items[0][price_data][unit_amount]": String(priceMap[tier]),
+      "line_items[0][quantity]": "1",
+      "metadata[user_id]": user.id,
+      "metadata[group_name]": name.trim(),
+      "metadata[group_description]": description?.trim() || "",
+      "metadata[access_code]": access_code?.trim() || "",
+      "metadata[tier]": tier,
+      "metadata[max_members]": String(maxMembersMap[tier]),
+      success_url: success_url || `${req.headers.get("origin")}/groups?payment=success`,
+      cancel_url: cancel_url || `${req.headers.get("origin")}/groups?payment=cancelled`,
+    };
+
+    const params = new URLSearchParams();
+    for (const [key, value] of Object.entries(sessionPayload)) {
+      params.append(key, value);
+    }
+
+    const stripeRes = await fetch("https://api.stripe.com/v1/checkout/sessions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${stripeKey}`,
+        "Content-Type": "application/x-www-form-urlencoded",
       },
-      success_url: success_url || `${req.headers.get("origin")}/my-groups?payment=success`,
-      cancel_url: cancel_url || `${req.headers.get("origin")}/my-groups?payment=cancelled`,
+      body: params.toString(),
     });
+
+    const session = await stripeRes.json();
+
+    if (!stripeRes.ok) {
+      console.error("Stripe error:", session);
+      throw new Error(session.error?.message || "Error de Stripe");
+    }
 
     return new Response(JSON.stringify({ url: session.url }), {
       status: 200,
