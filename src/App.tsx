@@ -7,6 +7,7 @@ import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import MatchCalendar from "./pages/MatchCalendar";
+import GroupDashboard from "./pages/GroupDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -22,6 +23,7 @@ const App = () => (
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/calendar" element={<MatchCalendar />} />
+          <Route path="/group/:id" element={<GroupDashboard />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
