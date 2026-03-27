@@ -7,6 +7,7 @@ import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import MatchCalendar from "./pages/MatchCalendar";
+import GroupDashboard from "./pages/GroupDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
