@@ -8,7 +8,7 @@ const corsHeaders = {
 
 const API_BASE = "https://v3.football.api-sports.io";
 const LEAGUE_ID = 262;
-const SEASON = 2025;
+const SEASON = 2024;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
