@@ -6,7 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Trophy, Users, BarChart3, ClipboardList, ArrowLeft, Copy, Loader2 } from "lucide-react";
+import { Trophy, Users, BarChart3, ClipboardList, ArrowLeft, Copy, Loader2, Settings } from "lucide-react";
 import { toast } from "sonner";
 import Navbar from "@/components/landing/Navbar";
 import Footer from "@/components/landing/Footer";
