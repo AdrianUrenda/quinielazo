@@ -15,6 +15,7 @@ import JoinGroup from "./pages/JoinGroup";
 import NotFound from "./pages/NotFound";
 import Notifications from "./pages/Notifications";
 import DemoGroup from "./pages/DemoGroup";
+import DemoAdmin from "./pages/DemoAdmin";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
