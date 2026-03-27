@@ -16,6 +16,8 @@ import NotFound from "./pages/NotFound";
 import Notifications from "./pages/Notifications";
 import DemoGroup from "./pages/DemoGroup";
 import DemoAdmin from "./pages/DemoAdmin";
+import Terms from "./pages/Terms";
+import Privacy from "./pages/Privacy";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
@@ -39,6 +41,9 @@ const App = () => (
           <Route path="/demo" element={<ProtectedRoute><DemoGroup /></ProtectedRoute>} />
           <Route path="/demo/admin" element={<ProtectedRoute><DemoAdmin /></ProtectedRoute>} />
           <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+          <Route path="/terms" element={<Terms />} />
+          <Route path="/privacy" element={<Privacy />} />
+          <Route path="*" element={<NotFound />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
