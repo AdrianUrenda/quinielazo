@@ -14,6 +14,8 @@ import MyGroups from "./pages/MyGroups";
 import JoinGroup from "./pages/JoinGroup";
 import NotFound from "./pages/NotFound";
 import Notifications from "./pages/Notifications";
+import DemoGroup from "./pages/DemoGroup";
+import DemoAdmin from "./pages/DemoAdmin";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
@@ -34,6 +36,8 @@ const App = () => (
           <Route path="/groups" element={<ProtectedRoute><MyGroups /></ProtectedRoute>} />
           <Route path="/group/:id" element={<GroupDashboard />} />
           <Route path="/join/:groupId" element={<JoinGroup />} />
+          <Route path="/demo" element={<ProtectedRoute><DemoGroup /></ProtectedRoute>} />
+          <Route path="/demo/admin" element={<ProtectedRoute><DemoAdmin /></ProtectedRoute>} />
           <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
           <Route path="*" element={<NotFound />} />
         </Routes>

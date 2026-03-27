@@ -10,6 +10,7 @@ import Navbar from "@/components/landing/Navbar";
 import Footer from "@/components/landing/Footer";
 import CreateGroupModal from "@/components/groups/CreateGroupModal";
 import JoinGroupModal from "@/components/groups/JoinGroupModal";
+import DemoGroupCard from "@/components/demo/DemoGroupCard";
 import { motion } from "framer-motion";
 
 const statusBadge = (isAdmin: boolean, status: string) => {
@@ -84,6 +85,11 @@ const MyGroups = () => {
             <h1 className="text-4xl font-display text-foreground tracking-wide">MIS GRUPOS</h1>
             <CTAs />
           </div>
+
+          {/* Demo Group Card */}
+          {user && <DemoGroupCard userId={user.id} />}
+
+          <div className="h-4" />
 
           {isLoading ? (
             <div className="flex justify-center py-20">
