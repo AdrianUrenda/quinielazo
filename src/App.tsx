@@ -8,7 +8,10 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import MatchCalendar from "./pages/MatchCalendar";
 import GroupDashboard from "./pages/GroupDashboard";
+import MyGroups from "./pages/MyGroups";
+import JoinGroup from "./pages/JoinGroup";
 import NotFound from "./pages/NotFound";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
 
@@ -23,7 +26,9 @@ const App = () => (
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/calendar" element={<MatchCalendar />} />
+          <Route path="/groups" element={<ProtectedRoute><MyGroups /></ProtectedRoute>} />
           <Route path="/group/:id" element={<GroupDashboard />} />
+          <Route path="/join/:groupId" element={<JoinGroup />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

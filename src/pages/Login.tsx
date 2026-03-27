@@ -3,12 +3,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Trophy, Mail, Lock, Eye, EyeOff } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 const Login = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const redirectTo = (location.state as any)?.from || "/groups";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -23,14 +25,14 @@ const Login = () => {
       toast.error(error.message);
     } else {
       toast.success("¡Bienvenido de vuelta!");
-      navigate("/dashboard");
+      navigate(redirectTo);
     }
   };
 
   const handleGoogleLogin = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: window.location.origin + "/dashboard" },
+      options: { redirectTo: window.location.origin + "/groups" },
     });
     if (error) toast.error(error.message);
   };
