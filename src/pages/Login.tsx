@@ -113,6 +113,12 @@ const Login = () => {
               </div>
             </div>
 
+            <div className="flex justify-end">
+              <Link to="/forgot-password" className="text-xs text-muted-foreground font-body hover:underline">
+                ¿Olvidaste tu contraseña?
+              </Link>
+            </div>
+
             <Button type="submit" className="w-full h-12 font-body text-base" disabled={loading}>
               {loading ? "Entrando..." : "Iniciar sesión"}
             </Button>
