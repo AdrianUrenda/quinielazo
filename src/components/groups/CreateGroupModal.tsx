@@ -9,7 +9,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { useQueryClient } from "@tanstack/react-query";
 import { Loader2, Eye, EyeOff, Copy, Check, PartyPopper } from "lucide-react";
 
 interface Props {
@@ -25,12 +24,9 @@ const tiers: { value: Tier; label: string; desc: string; price: string }[] = [
   { value: "grande", label: "Grande", desc: "Miembros ilimitados", price: "$199 MXN" },
 ];
 
-const maxMembersMap: Record<Tier, number> = { basico: 10, familiar: 20, grande: 99999 };
-
 const CreateGroupModal = ({ open, onOpenChange }: Props) => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -54,36 +50,21 @@ const CreateGroupModal = ({ open, onOpenChange }: Props) => {
 
     setLoading(true);
     try {
-      // TODO: Integrate Stripe payment here before creating the group
-      // For now, create the group directly
-      const { data, error } = await supabase
-        .from("groups")
-        .insert({
+      const { data, error } = await supabase.functions.invoke("create-checkout-session", {
+        body: {
           name: name.trim(),
           description: description.trim() || null,
-          access_code: accessCode.trim() || null,
           tier,
-          max_members: maxMembersMap[tier],
-          admin_user_id: user.id,
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      // Add creator as approved member
-      await supabase.from("group_members").insert({
-        group_id: data.id,
-        user_id: user.id,
-        status: "approved" as any,
+          access_code: accessCode.trim() || null,
+        },
       });
 
-      const inviteLink = `${window.location.origin}/join/${data.id}${accessCode ? `?code=${accessCode}` : ""}`;
-      setSuccess({ groupId: data.id, inviteLink });
-      queryClient.invalidateQueries({ queryKey: ["my-groups"] });
+      if (error) throw error;
+      if (!data?.url) throw new Error("No se recibió URL de pago");
+
+      window.location.href = data.url;
     } catch (err: any) {
-      toast.error(err.message || "Error al crear el grupo");
-    } finally {
+      toast.error(err.message || "Error al iniciar el pago");
       setLoading(false);
     }
   };

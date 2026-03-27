@@ -1,8 +1,8 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Plus, UserPlus, Users, Loader2, Trophy } from "lucide-react";
@@ -12,6 +12,7 @@ import CreateGroupModal from "@/components/groups/CreateGroupModal";
 import JoinGroupModal from "@/components/groups/JoinGroupModal";
 import DemoGroupCard from "@/components/demo/DemoGroupCard";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
 
 const statusBadge = (isAdmin: boolean, status: string) => {
   if (isAdmin) return { label: "Admin", className: "bg-primary/10 text-primary border-primary/20" };
@@ -23,8 +24,21 @@ const statusBadge = (isAdmin: boolean, status: string) => {
 const MyGroups = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [searchParams] = useSearchParams();
   const [showCreate, setShowCreate] = useState(false);
   const [showJoin, setShowJoin] = useState(false);
+
+  useEffect(() => {
+    if (searchParams.get("payment") === "success") {
+      toast.success("¡Pago exitoso! Tu grupo está siendo creado...");
+      navigate("/groups", { replace: true });
+      // Re-fetch after a short delay to allow the webhook to complete
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["my-groups"] });
+      }, 3000);
+    }
+  }, []);
 
   const { data: groups, isLoading } = useQuery({
     queryKey: ["my-groups", user?.id],
