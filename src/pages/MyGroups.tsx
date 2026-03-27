@@ -29,27 +29,35 @@ const MyGroups = () => {
     queryKey: ["my-groups", user?.id],
     queryFn: async () => {
       // Get memberships
-      const { data: memberships, error } = await supabase
+      const { data: memberships } = await supabase
         .from("group_members")
         .select("group_id, status")
         .eq("user_id", user!.id)
         .in("status", ["approved", "pending"]);
-      if (error) throw error;
 
-      if (!memberships.length) return [];
+      // Also get groups where user is admin (in case membership row is missing)
+      const { data: adminGroups } = await supabase
+        .from("groups")
+        .select("id, name, description, admin_user_id")
+        .eq("admin_user_id", user!.id);
 
-      const groupIds = memberships.map((m) => m.group_id);
+      const memberGroupIds = (memberships || []).map((m) => m.group_id);
+      const allGroupIds = new Set([...memberGroupIds, ...(adminGroups || []).map((g) => g.id)]);
+
+      if (allGroupIds.size === 0) return [];
+
       const { data: groupsData } = await supabase
         .from("groups")
         .select("id, name, description, admin_user_id")
-        .in("id", groupIds);
+        .in("id", Array.from(allGroupIds));
 
       return (groupsData || []).map((g) => {
-        const membership = memberships.find((m) => m.group_id === g.id);
+        const membership = (memberships || []).find((m) => m.group_id === g.id);
+        const isAdmin = g.admin_user_id === user!.id;
         return {
           ...g,
-          status: membership?.status || "pending",
-          isAdmin: g.admin_user_id === user!.id,
+          status: isAdmin ? "approved" : (membership?.status || "pending"),
+          isAdmin,
         };
       });
     },
