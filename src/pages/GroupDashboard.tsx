@@ -6,7 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Trophy, Users, BarChart3, ClipboardList, ArrowLeft, Copy, Loader2 } from "lucide-react";
+import { Trophy, Users, BarChart3, ClipboardList, ArrowLeft, Copy, Loader2, Settings } from "lucide-react";
 import { toast } from "sonner";
 import Navbar from "@/components/landing/Navbar";
 import Footer from "@/components/landing/Footer";
@@ -14,6 +14,7 @@ import PredictionsTab from "@/components/group/PredictionsTab";
 import LeaderboardTab from "@/components/group/LeaderboardTab";
 import MembersTab from "@/components/group/MembersTab";
 import MemberPredictionsView from "@/components/group/MemberPredictionsView";
+import EditGroupModal from "@/components/group/EditGroupModal";
 
 const tierLabels: Record<string, string> = {
   basico: "Básico",
@@ -26,6 +27,7 @@ const GroupDashboard = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const [viewingMember, setViewingMember] = useState<{ id: string; name: string } | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
 
   const { data: group, isLoading: groupLoading } = useQuery({
     queryKey: ["group", id],
@@ -104,7 +106,14 @@ const GroupDashboard = () => {
                   <h1 className="text-3xl md:text-4xl font-display text-foreground tracking-wide">{group.name}</h1>
                   {group.description && <p className="text-sm text-muted-foreground font-body mt-1">{group.description}</p>}
                 </div>
-                <Badge variant="secondary" className="font-display text-xs shrink-0">{tierLabels[group.tier] || group.tier}</Badge>
+                <div className="flex items-center gap-2 shrink-0">
+                  {isAdmin && (
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => setEditOpen(true)}>
+                      <Settings className="w-4 h-4" />
+                    </Button>
+                  )}
+                  <Badge variant="secondary" className="font-display text-xs">{tierLabels[group.tier] || group.tier}</Badge>
+                </div>
               </div>
 
               {isAdmin && group.invite_code && (
@@ -173,6 +182,13 @@ const GroupDashboard = () => {
         </div>
       </div>
       <Footer />
+      {isAdmin && group && (
+        <EditGroupModal
+          open={editOpen}
+          onOpenChange={setEditOpen}
+          group={{ id: group.id, name: group.name, description: group.description, access_code: group.access_code }}
+        />
+      )}
     </div>
   );
 };
