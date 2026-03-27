@@ -11,6 +11,8 @@ import Navbar from "@/components/landing/Navbar";
 import Footer from "@/components/landing/Footer";
 import DemoPredictionsTab from "@/components/demo/DemoPredictionsTab";
 import DemoLeaderboardTab from "@/components/demo/DemoLeaderboardTab";
+import DemoMembersTab from "@/components/demo/DemoMembersTab";
+import DemoMemberPredictionsView from "@/components/demo/DemoMemberPredictionsView";
 
 const DemoGroup = () => {
   const navigate = useNavigate();
