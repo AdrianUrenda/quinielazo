@@ -5,12 +5,20 @@ import { useAuth } from "@/hooks/useAuth";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { useEffect } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 
 const Navbar = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+
+  const [bellRinging, setBellRinging] = useState(false);
+  const prevCountRef = useRef<number | null>(null);
+
+  const triggerBellRing = useCallback(() => {
+    setBellRinging(true);
+    setTimeout(() => setBellRinging(false), 800);
+  }, []);
 
   // Realtime: refresh unread count when notifications change
   useEffect(() => {
@@ -19,14 +27,16 @@ const Navbar = () => {
       .channel("navbar-notifications")
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
+        { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
         () => {
           queryClient.invalidateQueries({ queryKey: ["unread-notifications", user.id] });
+          triggerBellRing();
+          toast("🔔 Nueva notificación", { duration: 3000 });
         }
       )
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [user, queryClient]);
+  }, [user, queryClient, triggerBellRing]);
 
   const { data: unreadCount } = useQuery({
     queryKey: ["unread-notifications", user?.id],
@@ -66,9 +76,9 @@ const Navbar = () => {
                 Mis Grupos
               </Link>
               <Link to="/notifications" className="relative text-primary-foreground/70 hover:text-primary-foreground transition-colors">
-                <Bell className="w-5 h-5" />
+                <Bell className={`w-5 h-5 origin-top ${bellRinging ? "animate-bell-ring" : ""}`} />
                 {(unreadCount ?? 0) > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center">
+                  <span className={`absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center ${bellRinging ? "animate-badge-pop" : ""}`}>
                     {unreadCount}
                   </span>
                 )}
@@ -98,9 +108,9 @@ const Navbar = () => {
           {!loading && user ? (
             <>
               <Link to="/notifications" className="relative text-primary-foreground/70 hover:text-primary-foreground">
-                <Bell className="w-5 h-5" />
+                <Bell className={`w-5 h-5 origin-top ${bellRinging ? "animate-bell-ring" : ""}`} />
                 {(unreadCount ?? 0) > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center">
+                  <span className={`absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center ${bellRinging ? "animate-badge-pop" : ""}`}>
                     {unreadCount}
                   </span>
                 )}
