@@ -16,6 +16,8 @@ import NotFound from "./pages/NotFound";
 import Notifications from "./pages/Notifications";
 import DemoGroup from "./pages/DemoGroup";
 import DemoAdmin from "./pages/DemoAdmin";
+import Terms from "./pages/Terms";
+import Privacy from "./pages/Privacy";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
