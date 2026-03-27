@@ -93,7 +93,7 @@ const JoinGroupModal = ({ open, onOpenChange, preSelectedGroupId, preFilledCode 
       setError("Ya tienes una solicitud pendiente para este grupo.");
       return;
     }
-    if (memberCount >= selectedGroup.max_members) {
+    if (currentMemberCount >= selectedGroup.max_members) {
       setError("Este grupo ha alcanzado su límite de miembros.");
       return;
     }
@@ -229,7 +229,7 @@ const JoinGroupModal = ({ open, onOpenChange, preSelectedGroupId, preFilledCode 
                     </div>
                     <div className="flex items-center gap-1 text-xs text-muted-foreground font-body">
                       <Users className="w-3.5 h-3.5" />
-                      <span>{memberCount} / {selectedGroup.max_members === 999 ? "∞" : selectedGroup.max_members} miembros</span>
+                      <span>{currentMemberCount} / {selectedGroup.max_members === 999 ? "∞" : selectedGroup.max_members} miembros</span>
                     </div>
                   </div>
 
