@@ -92,7 +92,7 @@ const DemoGroup = () => {
           <Tabs defaultValue="predictions" className="space-y-4">
             <TabsList className="grid w-full grid-cols-3 h-12">
               <TabsTrigger value="predictions" className="font-display tracking-wider text-xs gap-1.5">
-                <ClipboardList className="w-4 h-4" /> PARTIDOS
+                <ClipboardList className="w-4 h-4" /> PREDICCIONES
               </TabsTrigger>
               <TabsTrigger value="leaderboard" className="font-display tracking-wider text-xs gap-1.5">
                 <BarChart3 className="w-4 h-4" /> POSICIONES
