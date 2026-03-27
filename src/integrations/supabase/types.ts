@@ -43,13 +43,14 @@ export type Database = {
           home_team: string
           home_team_logo: string | null
           id: string
+          jornada: number | null
           kickoff_utc: string
           last_synced_at: string | null
           stadium: string | null
           status: string
         }
         Insert: {
-          api_fixture_id: number
+          api_fixture_id?: number
           away_score?: number | null
           away_team: string
           away_team_logo?: string | null
@@ -58,6 +59,7 @@ export type Database = {
           home_team: string
           home_team_logo?: string | null
           id?: string
+          jornada?: number | null
           kickoff_utc: string
           last_synced_at?: string | null
           stadium?: string | null
@@ -73,6 +75,7 @@ export type Database = {
           home_team?: string
           home_team_logo?: string | null
           id?: string
+          jornada?: number | null
           kickoff_utc?: string
           last_synced_at?: string | null
           stadium?: string | null
