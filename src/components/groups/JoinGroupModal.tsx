@@ -33,7 +33,7 @@ const JoinGroupModal = ({ open, onOpenChange, preSelectedGroupId, preFilledCode 
     queryFn: async () => {
       const { data, error } = await supabase.from("groups_discovery" as any).select("id, name, description, max_members, has_access_code, tier").order("name");
       if (error) throw error;
-      return data as { id: string; name: string; description: string | null; max_members: number; has_access_code: boolean; tier: string }[];
+      return (data as unknown as { id: string; name: string; description: string | null; max_members: number; has_access_code: boolean; tier: string }[]);
     },
     enabled: open,
   });
@@ -103,10 +103,16 @@ const JoinGroupModal = ({ open, onOpenChange, preSelectedGroupId, preFilledCode 
       return;
     }
 
-    // Validate access code
-    if (selectedGroup.access_code && accessCode !== selectedGroup.access_code) {
-      setError("Código incorrecto. Verifica con el administrador del grupo.");
-      return;
+    // Validate access code server-side
+    if (selectedGroup.has_access_code) {
+      const { data: valid, error: rpcError } = await supabase.rpc("validate_group_access_code" as any, {
+        _group_id: selectedGroup.id,
+        _code: accessCode,
+      });
+      if (rpcError || !valid) {
+        setError("Código incorrecto. Verifica con el administrador del grupo.");
+        return;
+      }
     }
 
     setSubmitting(true);
@@ -202,7 +208,7 @@ const JoinGroupModal = ({ open, onOpenChange, preSelectedGroupId, preFilledCode 
                             </div>
                             <div className="min-w-0">
                               <p className="text-sm font-semibold font-body text-foreground truncate">{g.name}</p>
-                              {g.access_code && <Lock className="w-3 h-3 text-muted-foreground inline-block ml-1" />}
+                              {g.has_access_code && <Lock className="w-3 h-3 text-muted-foreground inline-block ml-1" />}
                             </div>
                           </button>
                         ))
@@ -238,7 +244,7 @@ const JoinGroupModal = ({ open, onOpenChange, preSelectedGroupId, preFilledCode 
                     </Button>
                   )}
 
-                  {selectedGroup.access_code && (
+                  {selectedGroup.has_access_code && (
                     <div className="space-y-2">
                       <Label className="font-body text-sm">Código de acceso</Label>
                       <div className="relative">
