@@ -78,7 +78,7 @@ const JoinGroupModal = ({ open, onOpenChange, preSelectedGroupId, preFilledCode 
   }, [allGroups, search]);
 
   const selectedGroup = allGroups?.find((g) => g.id === selectedGroupId);
-  const memberCount = selectedGroupId ? (memberCounts?.[selectedGroupId] || 0) : 0;
+  const currentMemberCount = memberCount ?? 0;
 
   const handleSubmit = async () => {
     if (!selectedGroup || !user) return;
