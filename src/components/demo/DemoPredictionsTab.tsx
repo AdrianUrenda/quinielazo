@@ -160,60 +160,65 @@ const DemoPredictionsTab = ({ userId }: Props) => {
       )}
 
       {/* Upcoming matches */}
-      {upcoming.length > 0 && (
+      {upcomingJornadas.length > 0 && (
         <div>
           <h3 className="font-display text-lg text-foreground tracking-wider mb-3">PRÓXIMOS PARTIDOS</h3>
-          <div className="space-y-3">
-            {upcoming.map((match: any, i: number) => {
-              const hasPrediction = predictionMap.has(match.id);
-              const kickoff = new Date(match.kickoff_utc);
-              const isLocked = kickoff <= new Date();
+          {upcomingJornadas.map((jornada) => (
+            <div key={jornada} className="mb-4">
+              <p className="text-xs font-display tracking-wider text-muted-foreground mb-2">JORNADA {jornada}</p>
+              <div className="space-y-3">
+                {upcomingByJornada[jornada].map((match: any, i: number) => {
+                  const hasPrediction = predictionMap.has(match.id);
+                  const kickoff = new Date(match.kickoff_utc);
+                  const isLocked = kickoff <= new Date();
 
-              return (
-                <motion.div key={match.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }} className="card-elevated rounded-xl p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-display tracking-wider text-primary">Liga MX</span>
-                    <span className="text-xs text-muted-foreground font-body">{format(kickoff, "d MMM · HH:mm", { locale: es })}</span>
-                  </div>
-
-                  <div className="flex items-center justify-center gap-2">
-                    <div className="flex-1 text-right flex items-center justify-end gap-2">
-                      {match.home_team_logo && <img src={match.home_team_logo} alt="" className="w-5 h-5" />}
-                      <span className="text-sm font-body font-semibold text-foreground truncate">{match.home_team}</span>
-                    </div>
-                    {isLocked ? (
-                      <div className="flex items-center gap-1 text-muted-foreground">
-                        <Lock className="w-3.5 h-3.5" />
-                        <span className="text-xs font-body">Cerrada</span>
+                  return (
+                    <motion.div key={match.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }} className="card-elevated rounded-xl p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-display tracking-wider text-primary">Liga MX</span>
+                        <span className="text-xs text-muted-foreground font-body">{format(kickoff, "d MMM · HH:mm", { locale: es })}</span>
                       </div>
-                    ) : (
-                      <>
-                        <Input className="w-12 h-9 text-center font-display text-lg p-0" value={getScore(match.id, "home")} onChange={(e) => setScore(match.id, "home", e.target.value)} placeholder="-" />
-                        <span className="text-muted-foreground font-display">:</span>
-                        <Input className="w-12 h-9 text-center font-display text-lg p-0" value={getScore(match.id, "away")} onChange={(e) => setScore(match.id, "away", e.target.value)} placeholder="-" />
-                      </>
-                    )}
-                    <div className="flex-1 text-left flex items-center gap-2">
-                      <span className="text-sm font-body font-semibold text-foreground truncate">{match.away_team}</span>
-                      {match.away_team_logo && <img src={match.away_team_logo} alt="" className="w-5 h-5" />}
-                    </div>
-                  </div>
 
-                  <div className="flex items-center justify-between mt-2">
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground font-body">
-                      <MapPin className="w-3 h-3" />
-                      {match.stadium}
-                    </div>
-                    {!isLocked && (
-                      <Button size="sm" variant={hasPrediction ? "outline" : "default"} onClick={() => handleSave(match.id)} disabled={savePrediction.isPending} className="h-7 text-xs gap-1">
-                        {hasPrediction ? <><Check className="w-3 h-3" /> Actualizar</> : "Guardar"}
-                      </Button>
-                    )}
-                  </div>
-                </motion.div>
-              );
-            })}
-          </div>
+                      <div className="flex items-center justify-center gap-2">
+                        <div className="flex-1 text-right flex items-center justify-end gap-2">
+                          {match.home_team_logo && <img src={match.home_team_logo} alt="" className="w-5 h-5" />}
+                          <span className="text-sm font-body font-semibold text-foreground truncate">{match.home_team}</span>
+                        </div>
+                        {isLocked ? (
+                          <div className="flex items-center gap-1 text-muted-foreground">
+                            <Lock className="w-3.5 h-3.5" />
+                            <span className="text-xs font-body">Cerrada</span>
+                          </div>
+                        ) : (
+                          <>
+                            <Input className="w-12 h-9 text-center font-display text-lg p-0" value={getScore(match.id, "home")} onChange={(e) => setScore(match.id, "home", e.target.value)} placeholder="-" />
+                            <span className="text-muted-foreground font-display">:</span>
+                            <Input className="w-12 h-9 text-center font-display text-lg p-0" value={getScore(match.id, "away")} onChange={(e) => setScore(match.id, "away", e.target.value)} placeholder="-" />
+                          </>
+                        )}
+                        <div className="flex-1 text-left flex items-center gap-2">
+                          <span className="text-sm font-body font-semibold text-foreground truncate">{match.away_team}</span>
+                          {match.away_team_logo && <img src={match.away_team_logo} alt="" className="w-5 h-5" />}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between mt-2">
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground font-body">
+                          <MapPin className="w-3 h-3" />
+                          {match.stadium}
+                        </div>
+                        {!isLocked && (
+                          <Button size="sm" variant={hasPrediction ? "outline" : "default"} onClick={() => handleSave(match.id)} disabled={savePrediction.isPending} className="h-7 text-xs gap-1">
+                            {hasPrediction ? <><Check className="w-3 h-3" /> Actualizar</> : "Guardar"}
+                          </Button>
+                        )}
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
