@@ -44,7 +44,13 @@ const Register = () => {
   const handleGoogleRegister = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: window.location.origin + "/groups" },
+      options: {
+        redirectTo: window.location.origin + "/groups",
+        queryParams: {
+          access_type: "offline",
+          prompt: "consent",
+        },
+      },
     });
     if (error) toast.error(error.message);
   };
