@@ -3,12 +3,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { CheckCircle, XCircle, UserX, Clock, ShieldCheck } from "lucide-react";
+import { CheckCircle, XCircle, UserX, Clock, ShieldCheck, Eye } from "lucide-react";
 import { motion } from "framer-motion";
 
 interface Props {
   groupId: string;
   isAdmin: boolean;
+  onViewPredictions: (userId: string, displayName: string) => void;
 }
 
 const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
@@ -18,7 +19,7 @@ const statusConfig: Record<string, { label: string; variant: "default" | "second
   removed: { label: "Removido", variant: "outline" },
 };
 
-const MembersTab = ({ groupId, isAdmin }: Props) => {
+const MembersTab = ({ groupId, isAdmin, onViewPredictions }: Props) => {
   const queryClient = useQueryClient();
 
   const { data: members, isLoading } = useQuery({
@@ -50,7 +51,6 @@ const MembersTab = ({ groupId, isAdmin }: Props) => {
         .eq("id", memberId);
       if (error) throw error;
 
-      // Send notification to user
       const { data: groupData } = await supabase.from("groups").select("name").eq("id", groupId).single();
       const groupName = groupData?.name || "el grupo";
       if (status === "approved") {
@@ -86,6 +86,7 @@ const MembersTab = ({ groupId, isAdmin }: Props) => {
 
   const renderMember = (m: (typeof members)[0], i: number) => {
     const sc = statusConfig[m.status] || statusConfig.approved;
+    const displayName = m.profile?.display_name || "Sin nombre";
     return (
       <motion.div
         key={m.id}
@@ -102,10 +103,20 @@ const MembersTab = ({ groupId, isAdmin }: Props) => {
           )}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-body font-semibold text-foreground truncate">{m.profile?.display_name || "Sin nombre"}</p>
+          <p className="text-sm font-body font-semibold text-foreground truncate">{displayName}</p>
           <p className="text-xs text-muted-foreground font-body truncate">{m.profile?.email}</p>
         </div>
         <Badge variant={sc.variant} className="text-[10px] shrink-0">{sc.label}</Badge>
+        {m.status === "approved" && (
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-7 text-xs gap-1 text-muted-foreground hover:text-foreground shrink-0"
+            onClick={() => onViewPredictions(m.user_id, displayName)}
+          >
+            <Eye className="w-3.5 h-3.5" /> Ver predicciones
+          </Button>
+        )}
         {isAdmin && m.status === "pending" && (
           <div className="flex gap-1 shrink-0">
             <Button size="icon" variant="ghost" className="h-7 w-7 text-primary" onClick={() => updateStatus.mutate({ memberId: m.id, userId: m.user_id, status: "approved" })}>
