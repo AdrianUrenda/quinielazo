@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,7 +8,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
-import { Loader2, Lock, FileText } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Loader2, Lock, FileText, Trash2 } from "lucide-react";
 
 interface Props {
   open: boolean;
@@ -22,9 +24,11 @@ interface Props {
 
 const EditGroupModal = ({ open, onOpenChange, group }: Props) => {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [description, setDescription] = useState(group.description || "");
   const [accessCode, setAccessCode] = useState(group.access_code || "");
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -62,6 +66,27 @@ const EditGroupModal = ({ open, onOpenChange, group }: Props) => {
       toast.error(err.message || "Error al actualizar el grupo");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      const { error } = await supabase
+        .from("groups")
+        .delete()
+        .eq("id", group.id);
+
+      if (error) throw error;
+
+      toast.success("Grupo eliminado correctamente");
+      queryClient.invalidateQueries({ queryKey: ["my-groups"] });
+      onOpenChange(false);
+      navigate("/groups");
+    } catch (err: any) {
+      toast.error(err.message || "Error al eliminar el grupo");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -106,10 +131,38 @@ const EditGroupModal = ({ open, onOpenChange, group }: Props) => {
             </p>
           </div>
 
-          <Button className="w-full h-11" onClick={handleSave} disabled={saving}>
+          <Button className="w-full h-11" onClick={handleSave} disabled={saving || deleting}>
             {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
             {saving ? "Guardando..." : "Guardar cambios"}
           </Button>
+
+          <div className="border-t border-border pt-4">
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" className="w-full h-11" disabled={saving || deleting}>
+                  {deleting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Trash2 className="w-4 h-4 mr-2" />}
+                  {deleting ? "Eliminando..." : "Eliminar grupo"}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="font-display">¿ELIMINAR GRUPO?</AlertDialogTitle>
+                  <AlertDialogDescription className="font-body">
+                    Esta acción es irreversible. Se eliminará el grupo <span className="font-semibold text-foreground">"{group.name}"</span>, todos sus miembros y todas las predicciones asociadas. No hay reembolsos.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel className="font-body">Cancelar</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleDelete}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90 font-body"
+                  >
+                    Sí, eliminar grupo
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
