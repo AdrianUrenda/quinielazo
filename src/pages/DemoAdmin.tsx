@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -17,7 +18,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { ArrowLeft, RefreshCw, Users, Trash2, Loader2 } from "lucide-react";
+import { ArrowLeft, Users, Trash2, Loader2, Check, ChevronDown, ChevronUp } from "lucide-react";
 import Navbar from "@/components/landing/Navbar";
 import Footer from "@/components/landing/Footer";
 
@@ -27,6 +28,8 @@ const DemoAdmin = () => {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [expandedJornada, setExpandedJornada] = useState<number | null>(null);
+  const [scores, setScores] = useState<Record<string, { home: string; away: string }>>({});
 
   const { data: members } = useQuery({
     queryKey: ["demo-admin-members"],
@@ -43,40 +46,42 @@ const DemoAdmin = () => {
     enabled: !!user,
   });
 
-  const { data: matchCount } = useQuery({
-    queryKey: ["demo-admin-match-count"],
+  const { data: matches, isLoading: matchesLoading } = useQuery({
+    queryKey: ["demo-admin-matches"],
     queryFn: async () => {
-      const { count } = await supabase.from("demo_matches").select("*", { count: "exact", head: true });
-      return count || 0;
+      const { data } = await supabase
+        .from("demo_matches")
+        .select("*")
+        .order("jornada", { ascending: true })
+        .order("kickoff_utc", { ascending: true });
+      return data || [];
     },
   });
 
-  const invokeSync = async (action: string) => {
+  const invokeSync = async (action: string, body?: any) => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) throw new Error("No session");
     const resp = await fetch(
       `https://${SUPABASE_PROJECT_ID}.supabase.co/functions/v1/demo-sync?action=${action}`,
-      { headers: { Authorization: `Bearer ${session.access_token}`, "Content-Type": "application/json" } }
+      {
+        method: "POST",
+        headers: { Authorization: `Bearer ${session.access_token}`, "Content-Type": "application/json" },
+        body: body ? JSON.stringify(body) : undefined,
+      }
     );
     const result = await resp.json();
     if (!resp.ok) throw new Error(result.error || "Error");
     return result;
   };
 
-  const syncFixtures = useMutation({
-    mutationFn: () => invokeSync("sync-fixtures"),
+  const updateScore = useMutation({
+    mutationFn: (params: { matchId: string; homeScore: number; awayScore: number }) =>
+      invokeSync("update-score", params),
     onSuccess: (data) => {
-      toast.success(`Fixtures sincronizados: ${data.synced}`);
-      queryClient.invalidateQueries({ queryKey: ["demo-admin-match-count"] });
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  const syncResults = useMutation({
-    mutationFn: () => invokeSync("sync-results"),
-    onSuccess: (data) => {
-      toast.success(`Resultados procesados: ${data.scored}`);
-      queryClient.invalidateQueries({ queryKey: ["demo-matches"] });
+      toast.success(`Marcador registrado. ${data.predictionsScored} predicciones puntuadas.`);
+      queryClient.invalidateQueries({ queryKey: ["demo-admin-matches"] });
+      queryClient.invalidateQueries({ queryKey: ["demo-predictions"] });
+      queryClient.invalidateQueries({ queryKey: ["demo-leaderboard"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -84,18 +89,42 @@ const DemoAdmin = () => {
   const resetDemo = useMutation({
     mutationFn: () => invokeSync("reset"),
     onSuccess: () => {
-      toast.success("Predicciones del demo borradas");
+      toast.success("Demo reseteado completamente");
+      queryClient.invalidateQueries({ queryKey: ["demo-admin-matches"] });
       queryClient.invalidateQueries({ queryKey: ["demo-predictions"] });
       queryClient.invalidateQueries({ queryKey: ["demo-leaderboard"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const handleSubmitScore = (matchId: string) => {
+    const s = scores[matchId];
+    if (!s || s.home === "" || s.away === "") {
+      toast.error("Ingresa ambos marcadores");
+      return;
+    }
+    updateScore.mutate({
+      matchId,
+      homeScore: parseInt(s.home),
+      awayScore: parseInt(s.away),
+    });
+  };
+
   if (authLoading) {
     return <div className="min-h-screen bg-background flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
   }
 
   if (!user) { navigate("/login"); return null; }
+
+  // Group matches by jornada
+  const matchesByJornada = (matches || []).reduce((acc: Record<number, any[]>, m: any) => {
+    const j = m.jornada || 0;
+    if (!acc[j]) acc[j] = [];
+    acc[j].push(m);
+    return acc;
+  }, {});
+
+  const jornadas = Object.keys(matchesByJornada).map(Number).sort((a, b) => a - b);
 
   return (
     <div className="min-h-screen bg-background">
@@ -106,41 +135,145 @@ const DemoAdmin = () => {
             <ArrowLeft className="w-4 h-4 mr-1" /> Volver
           </Button>
 
-          <h1 className="text-4xl font-display text-foreground tracking-wide mb-8">ADMIN — GRUPO DEMO</h1>
+          <h1 className="text-3xl md:text-4xl font-display text-foreground tracking-wide mb-2">ADMIN — GRUPO DEMO</h1>
+          <p className="text-sm text-muted-foreground font-body mb-8">Liga MX · Clausura 2026 · Jornadas 13-17</p>
 
-          {/* Sync controls */}
-          <div className="card-elevated rounded-2xl p-6 space-y-4 mb-6">
-            <h2 className="font-display text-xl text-foreground tracking-wider">SINCRONIZACIÓN</h2>
-            <p className="text-sm text-muted-foreground font-body">Fixtures cargados: <strong>{matchCount}</strong></p>
-            <div className="flex flex-wrap gap-3">
-              <Button onClick={() => syncFixtures.mutate()} disabled={syncFixtures.isPending}>
-                <RefreshCw className={`w-4 h-4 mr-2 ${syncFixtures.isPending ? "animate-spin" : ""}`} />
-                Sincronizar fixtures
-              </Button>
-              <Button variant="outline" onClick={() => syncResults.mutate()} disabled={syncResults.isPending}>
-                <RefreshCw className={`w-4 h-4 mr-2 ${syncResults.isPending ? "animate-spin" : ""}`} />
-                Sincronizar resultados
-              </Button>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="destructive">
-                    <Trash2 className="w-4 h-4 mr-2" /> Reset Demo
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>¿Resetear Grupo Demo?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Esto borrará todas las predicciones del demo. Los miembros no serán removidos. Esta acción no se puede deshacer.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => resetDemo.mutate()}>Confirmar reset</AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+          {/* Reset */}
+          <div className="card-elevated rounded-2xl p-6 mb-6 flex items-center justify-between">
+            <div>
+              <h2 className="font-display text-lg text-foreground tracking-wider">CONTROLES</h2>
+              <p className="text-xs text-muted-foreground font-body mt-1">
+                {matches?.length || 0} partidos · {matches?.filter((m: any) => m.status === "finished").length || 0} finalizados
+              </p>
             </div>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" size="sm">
+                  <Trash2 className="w-4 h-4 mr-2" /> Reset Demo
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>¿Resetear Grupo Demo?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Esto borrará todas las predicciones y restablecerá todos los marcadores. No se puede deshacer.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => resetDemo.mutate()}>Confirmar reset</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+
+          {/* Matches by Jornada */}
+          <div className="space-y-4 mb-8">
+            <h2 className="font-display text-xl text-foreground tracking-wider">PARTIDOS POR JORNADA</h2>
+
+            {matchesLoading ? (
+              <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
+            ) : (
+              jornadas.map((jornada) => {
+                const jornadaMatches = matchesByJornada[jornada];
+                const finishedCount = jornadaMatches.filter((m: any) => m.status === "finished").length;
+                const isExpanded = expandedJornada === jornada;
+
+                return (
+                  <div key={jornada} className="card-elevated rounded-2xl overflow-hidden">
+                    <button
+                      onClick={() => setExpandedJornada(isExpanded ? null : jornada)}
+                      className="w-full flex items-center justify-between p-4 hover:bg-muted/30 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="font-display text-foreground tracking-wider">JORNADA {jornada}</span>
+                        <Badge variant="outline" className="text-[10px]">
+                          {finishedCount}/{jornadaMatches.length} finalizados
+                        </Badge>
+                      </div>
+                      {isExpanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+                    </button>
+
+                    {isExpanded && (
+                      <div className="border-t border-border">
+                        {jornadaMatches.map((match: any) => {
+                          const isFinished = match.status === "finished";
+                          const currentScore = scores[match.id] || { home: "", away: "" };
+                          const kickoff = new Date(match.kickoff_utc);
+
+                          return (
+                            <div key={match.id} className="p-4 border-b border-border last:border-0">
+                              <div className="flex items-center justify-between mb-2">
+                                <p className="text-[10px] text-muted-foreground font-body">
+                                  {kickoff.toLocaleDateString("es-MX", { weekday: "short", day: "numeric", month: "short" })} · {kickoff.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" })}
+                                </p>
+                                <p className="text-[10px] text-muted-foreground font-body">{match.stadium}, {match.city}</p>
+                              </div>
+
+                              <div className="flex items-center gap-3">
+                                <div className="flex-1 text-right">
+                                  <span className="text-sm font-body font-semibold text-foreground">{match.home_team}</span>
+                                </div>
+
+                                {isFinished ? (
+                                  <div className="flex items-center gap-2 shrink-0">
+                                    <Badge className="bg-primary/10 text-primary font-display text-sm px-3">
+                                      {match.home_score} - {match.away_score}
+                                    </Badge>
+                                    <Check className="w-4 h-4 text-green-500" />
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center gap-1 shrink-0">
+                                    <Input
+                                      type="number"
+                                      min="0"
+                                      max="20"
+                                      className="w-12 h-8 text-center text-sm p-0"
+                                      placeholder="-"
+                                      value={currentScore.home}
+                                      onChange={(e) => setScores(prev => ({
+                                        ...prev,
+                                        [match.id]: { ...prev[match.id], home: e.target.value, away: prev[match.id]?.away || "" }
+                                      }))}
+                                    />
+                                    <span className="text-muted-foreground text-xs">-</span>
+                                    <Input
+                                      type="number"
+                                      min="0"
+                                      max="20"
+                                      className="w-12 h-8 text-center text-sm p-0"
+                                      placeholder="-"
+                                      value={currentScore.away}
+                                      onChange={(e) => setScores(prev => ({
+                                        ...prev,
+                                        [match.id]: { home: prev[match.id]?.home || "", away: e.target.value }
+                                      }))}
+                                    />
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="h-8 px-2 ml-1"
+                                      disabled={updateScore.isPending}
+                                      onClick={() => handleSubmitScore(match.id)}
+                                    >
+                                      <Check className="w-3 h-3" />
+                                    </Button>
+                                  </div>
+                                )}
+
+                                <div className="flex-1">
+                                  <span className="text-sm font-body font-semibold text-foreground">{match.away_team}</span>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            )}
           </div>
 
           {/* Members */}
