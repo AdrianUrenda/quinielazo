@@ -1,0 +1,1 @@
+ALTER TABLE public.groups ADD COLUMN IF NOT EXISTS access_code text DEFAULT NULL;

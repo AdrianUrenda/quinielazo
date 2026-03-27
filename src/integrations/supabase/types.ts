@@ -48,6 +48,7 @@ export type Database = {
       }
       groups: {
         Row: {
+          access_code: string | null
           admin_user_id: string
           created_at: string
           description: string | null
@@ -59,6 +60,7 @@ export type Database = {
           tier: Database["public"]["Enums"]["group_tier"]
         }
         Insert: {
+          access_code?: string | null
           admin_user_id: string
           created_at?: string
           description?: string | null
@@ -70,6 +72,7 @@ export type Database = {
           tier?: Database["public"]["Enums"]["group_tier"]
         }
         Update: {
+          access_code?: string | null
           admin_user_id?: string
           created_at?: string
           description?: string | null
