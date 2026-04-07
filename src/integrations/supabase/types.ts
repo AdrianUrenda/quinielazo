@@ -405,6 +405,7 @@ export type Database = {
       }
     }
     Functions: {
+      delete_user_account: { Args: never; Returns: undefined }
       get_group_member_count: { Args: { _group_id: string }; Returns: number }
       is_group_admin: {
         Args: { _group_id: string; _user_id: string }
