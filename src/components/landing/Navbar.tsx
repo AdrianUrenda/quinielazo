@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Trophy, Bell, User } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,7 +9,6 @@ import { useEffect, useState, useRef, useCallback } from "react";
 
 const Navbar = () => {
   const { user, loading } = useAuth();
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   const [bellRinging, setBellRinging] = useState(false);
@@ -52,11 +51,7 @@ const Navbar = () => {
     refetchInterval: 30000,
   });
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    toast.success("Sesión cerrada");
-    navigate("/");
-  };
+
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-navy/90 backdrop-blur-md border-b border-primary-foreground/10">
