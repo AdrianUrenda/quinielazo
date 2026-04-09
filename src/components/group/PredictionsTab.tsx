@@ -68,20 +68,39 @@ const PredictionsTab = ({ groupId, userId }: Props) => {
         if (error) throw error;
       }
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["predictions", groupId, userId] });
-      toast.success("Predicción guardada");
-    },
     onError: (err: Error) => toast.error(err.message),
   });
 
-  const handleSave = (matchId: string) => {
-    const s = scores[matchId];
-    if (!s || s.home === "" || s.away === "") {
-      toast.error("Ingresa ambos marcadores");
+  const handleSaveAll = async () => {
+    const toSave = matches?.filter((match) => {
+      const s = scores[match.id];
+      const pred = predictionMap.get(match.id);
+      if (s && s.home !== "" && s.away !== "") {
+        if (pred) {
+          return s.home !== String(pred.predicted_home_score) || s.away !== String(pred.predicted_away_score);
+        }
+        return true;
+      }
+      return false;
+    }) ?? [];
+
+    if (toSave.length === 0) {
+      toast.info("No hay cambios para guardar");
       return;
     }
-    savePrediction.mutate({ matchId, home: parseInt(s.home), away: parseInt(s.away) });
+
+    let saved = 0;
+    for (const match of toSave) {
+      const s = scores[match.id];
+      try {
+        await savePrediction.mutateAsync({ matchId: match.id, home: parseInt(s.home), away: parseInt(s.away) });
+        saved++;
+      } catch { /* error already toasted */ }
+    }
+    if (saved > 0) {
+      queryClient.invalidateQueries({ queryKey: ["predictions", groupId, userId] });
+      toast.success(`${saved} predicción(es) guardada(s)`);
+    }
   };
 
   const getScore = (matchId: string, side: "home" | "away") => {
