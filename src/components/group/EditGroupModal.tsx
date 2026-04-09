@@ -19,6 +19,7 @@ interface Props {
     name: string;
     description: string | null;
     access_code: string | null;
+    prize_description: string | null;
   };
 }
 
@@ -27,6 +28,7 @@ const EditGroupModal = ({ open, onOpenChange, group }: Props) => {
   const navigate = useNavigate();
   const [description, setDescription] = useState(group.description || "");
   const [accessCode, setAccessCode] = useState(group.access_code || "");
+  const [prizeDescription, setPrizeDescription] = useState(group.prize_description || "");
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
@@ -34,6 +36,7 @@ const EditGroupModal = ({ open, onOpenChange, group }: Props) => {
     if (open) {
       setDescription(group.description || "");
       setAccessCode(group.access_code || "");
+      setPrizeDescription(group.prize_description || "");
     }
   }, [open, group]);
 
@@ -54,6 +57,7 @@ const EditGroupModal = ({ open, onOpenChange, group }: Props) => {
         .update({
           description: description.trim() || null,
           access_code: accessCode.trim() || null,
+          prize_description: prizeDescription.trim() || null,
         })
         .eq("id", group.id);
 
