@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Check, Lock, MapPin } from "lucide-react";
+import { MapPin, Save } from "lucide-react";
 import { motion } from "framer-motion";
 
 interface Props {
