@@ -165,24 +165,31 @@ const PredictionsTab = ({ groupId, userId }: Props) => {
               </span>
             </div>
 
-            <div className="flex items-center justify-between mt-2">
+            <div className="flex items-center mt-2">
               <div className="flex items-center gap-1 text-xs text-muted-foreground font-body">
                 <MapPin className="w-3 h-3" />
                 {match.stadium}
               </div>
-              <Button
-                size="sm"
-                variant={hasPrediction ? "outline" : "default"}
-                onClick={() => handleSave(match.id)}
-                disabled={savePrediction.isPending}
-                className="h-7 text-xs gap-1"
-              >
-                {hasPrediction ? <><Check className="w-3 h-3" /> Actualizar</> : "Guardar"}
-              </Button>
             </div>
           </motion.div>
         );
       })}
+
+      {/* Spacer for floating button */}
+      <div className="h-16" />
+
+      {/* Floating save button */}
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
+        <Button
+          size="lg"
+          onClick={handleSaveAll}
+          disabled={savePrediction.isPending}
+          className="px-8 shadow-lg gap-2"
+        >
+          <Save className="w-4 h-4" />
+          Guardar predicciones
+        </Button>
+      </div>
     </div>
   );
 };
