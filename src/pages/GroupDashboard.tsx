@@ -105,6 +105,12 @@ const GroupDashboard = () => {
                 <div>
                   <h1 className="text-3xl md:text-4xl font-display text-foreground tracking-wide">{group.name}</h1>
                   {group.description && <p className="text-sm text-muted-foreground font-body mt-1">{group.description}</p>}
+                  {group.prize_description && (
+                    <div className="mt-2 flex items-center gap-1.5 text-sm font-body text-amber-600 dark:text-amber-400">
+                      <Trophy className="w-4 h-4 shrink-0" />
+                      <span>{group.prize_description}</span>
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   {isAdmin && (
@@ -186,7 +192,7 @@ const GroupDashboard = () => {
         <EditGroupModal
           open={editOpen}
           onOpenChange={setEditOpen}
-          group={{ id: group.id, name: group.name, description: group.description, access_code: group.access_code }}
+          group={{ id: group.id, name: group.name, description: group.description, access_code: group.access_code, prize_description: group.prize_description }}
         />
       )}
     </div>

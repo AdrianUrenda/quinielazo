@@ -1,0 +1,1 @@
+ALTER TABLE public.groups ADD COLUMN prize_description text DEFAULT NULL;

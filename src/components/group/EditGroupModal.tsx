@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { Loader2, Lock, FileText, Trash2 } from "lucide-react";
+import { Loader2, Lock, FileText, Trash2, Trophy } from "lucide-react";
 
 interface Props {
   open: boolean;
@@ -19,6 +19,7 @@ interface Props {
     name: string;
     description: string | null;
     access_code: string | null;
+    prize_description: string | null;
   };
 }
 
@@ -27,6 +28,7 @@ const EditGroupModal = ({ open, onOpenChange, group }: Props) => {
   const navigate = useNavigate();
   const [description, setDescription] = useState(group.description || "");
   const [accessCode, setAccessCode] = useState(group.access_code || "");
+  const [prizeDescription, setPrizeDescription] = useState(group.prize_description || "");
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
@@ -34,6 +36,7 @@ const EditGroupModal = ({ open, onOpenChange, group }: Props) => {
     if (open) {
       setDescription(group.description || "");
       setAccessCode(group.access_code || "");
+      setPrizeDescription(group.prize_description || "");
     }
   }, [open, group]);
 
@@ -54,6 +57,7 @@ const EditGroupModal = ({ open, onOpenChange, group }: Props) => {
         .update({
           description: description.trim() || null,
           access_code: accessCode.trim() || null,
+          prize_description: prizeDescription.trim() || null,
         })
         .eq("id", group.id);
 
@@ -129,6 +133,21 @@ const EditGroupModal = ({ open, onOpenChange, group }: Props) => {
             <p className="text-xs text-muted-foreground font-body">
               Los usuarios necesitarán este código para solicitar unirse. Déjalo vacío para permitir acceso libre.
             </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="font-body text-sm flex items-center gap-1.5">
+              <Trophy className="w-3.5 h-3.5" /> Premio del grupo (opcional)
+            </Label>
+            <Textarea
+              placeholder='Ej: "$500 MXN al ganador, vaquita por Mercado Pago"'
+              value={prizeDescription}
+              onChange={(e) => setPrizeDescription(e.target.value)}
+              maxLength={300}
+              rows={2}
+              className="resize-none"
+            />
+            <p className="text-xs text-muted-foreground font-body text-right">{prizeDescription.length}/300</p>
           </div>
 
           <Button className="w-full h-11" onClick={handleSave} disabled={saving || deleting}>

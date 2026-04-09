@@ -170,6 +170,7 @@ export type Database = {
           invite_code: string | null
           max_members: number
           name: string
+          prize_description: string | null
           stripe_payment_id: string | null
           tier: Database["public"]["Enums"]["group_tier"]
         }
@@ -182,6 +183,7 @@ export type Database = {
           invite_code?: string | null
           max_members?: number
           name: string
+          prize_description?: string | null
           stripe_payment_id?: string | null
           tier?: Database["public"]["Enums"]["group_tier"]
         }
@@ -194,6 +196,7 @@ export type Database = {
           invite_code?: string | null
           max_members?: number
           name?: string
+          prize_description?: string | null
           stripe_payment_id?: string | null
           tier?: Database["public"]["Enums"]["group_tier"]
         }
