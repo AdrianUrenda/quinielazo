@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Check, Lock, MapPin, Radio } from "lucide-react";
+import { Lock, MapPin, Radio, Save } from "lucide-react";
 import { motion } from "framer-motion";
 
 interface Props {
@@ -70,13 +70,35 @@ const DemoPredictionsTab = ({ userId }: Props) => {
     onError: (err: Error) => toast.error(err.message),
   });
 
-  const handleSave = (matchId: string) => {
-    const s = scores[matchId];
-    if (!s || s.home === "" || s.away === "") {
-      toast.error("Ingresa ambos marcadores");
+  const handleSaveAll = async () => {
+    const upcomingMatches = matches?.filter((m: any) => m.status === "upcoming" && new Date(m.kickoff_utc) > new Date()) ?? [];
+    const toSave = upcomingMatches.filter((match: any) => {
+      const s = scores[match.id];
+      const pred = predictionMap.get(match.id) as any;
+      if (s && s.home !== "" && s.away !== "") {
+        if (pred) return s.home !== String(pred.predicted_home_score) || s.away !== String(pred.predicted_away_score);
+        return true;
+      }
+      return false;
+    });
+
+    if (toSave.length === 0) {
+      toast.info("No hay cambios para guardar");
       return;
     }
-    savePrediction.mutate({ matchId, home: parseInt(s.home), away: parseInt(s.away) });
+
+    let saved = 0;
+    for (const match of toSave) {
+      const s = scores[match.id];
+      try {
+        await savePrediction.mutateAsync({ matchId: match.id, home: parseInt(s.home), away: parseInt(s.away) });
+        saved++;
+      } catch { /* already toasted */ }
+    }
+    if (saved > 0) {
+      queryClient.invalidateQueries({ queryKey: ["demo-predictions", userId] });
+      toast.success(`${saved} predicción(es) guardada(s)`);
+    }
   };
 
   const getScore = (matchId: string, side: "home" | "away") => {
@@ -202,16 +224,11 @@ const DemoPredictionsTab = ({ userId }: Props) => {
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-between mt-2">
+                      <div className="flex items-center mt-2">
                         <div className="flex items-center gap-1 text-xs text-muted-foreground font-body">
                           <MapPin className="w-3 h-3" />
                           {match.stadium}
                         </div>
-                        {!isLocked && (
-                          <Button size="sm" variant={hasPrediction ? "outline" : "default"} onClick={() => handleSave(match.id)} disabled={savePrediction.isPending} className="h-7 text-xs gap-1">
-                            {hasPrediction ? <><Check className="w-3 h-3" /> Actualizar</> : "Guardar"}
-                          </Button>
-                        )}
                       </div>
                     </motion.div>
                   );
@@ -264,8 +281,23 @@ const DemoPredictionsTab = ({ userId }: Props) => {
           </div>
         </div>
       )}
+
+      {/* Spacer for floating button */}
+      <div className="h-16" />
+
+      {/* Floating save button */}
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
+        <Button
+          size="lg"
+          onClick={handleSaveAll}
+          disabled={savePrediction.isPending}
+          className="px-8 shadow-lg gap-2"
+        >
+          <Save className="w-4 h-4" />
+          Guardar predicciones
+        </Button>
+      </div>
     </div>
-  );
 };
 
 export default DemoPredictionsTab;
