@@ -298,6 +298,7 @@ const DemoPredictionsTab = ({ userId }: Props) => {
         </Button>
       </div>
     </div>
+  );
 };
 
 export default DemoPredictionsTab;
