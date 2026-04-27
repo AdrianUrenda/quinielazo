@@ -7,6 +7,12 @@ const API_BASE_URL = "https://v3.football.api-sports.io";
 const WORLD_CUP_LEAGUE_ID = "1";
 const WORLD_CUP_SEASON = "2026";
 
+const hasApiErrors = (payload: { errors?: unknown }) => {
+  if (!payload?.errors) return false;
+  if (Array.isArray(payload.errors)) return payload.errors.length > 0;
+  return Object.keys(payload.errors as Record<string, unknown>).length > 0;
+};
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -48,6 +54,10 @@ Deno.serve(async (req) => {
 
     if (!fixturesResponse.ok) {
       throw new Error(`Fixtures request failed [${fixturesResponse.status}]: ${JSON.stringify(fixtures)}`);
+    }
+
+    if (hasApiErrors(standings) || hasApiErrors(fixtures)) {
+      throw new Error(`API-Football returned errors: ${JSON.stringify({ standings: standings.errors, fixtures: fixtures.errors })}`);
     }
 
     return new Response(
