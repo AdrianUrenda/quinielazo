@@ -99,7 +99,7 @@ const Navbar = () => {
 
         <div className="md:hidden flex items-center gap-3">
           <Link to="/statistics" className="text-primary-foreground/70 hover:text-primary-foreground text-xs font-body">
-            Stats
+            Estadísticas
           </Link>
           {!loading && user ? (
             <>
