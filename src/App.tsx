@@ -16,6 +16,7 @@ import NotFound from "./pages/NotFound";
 import Notifications from "./pages/Notifications";
 import DemoGroup from "./pages/DemoGroup";
 import DemoAdmin from "./pages/DemoAdmin";
+import Statistics from "./pages/Statistics";
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
 import Profile from "./pages/Profile";
@@ -36,6 +37,7 @@ const App = () => (
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/calendar" element={<MatchCalendar />} />
+          <Route path="/statistics" element={<Statistics />} />
           <Route path="/groups" element={<ProtectedRoute><MyGroups /></ProtectedRoute>} />
           <Route path="/group/:id" element={<GroupDashboard />} />
           <Route path="/join/:groupId" element={<JoinGroup />} />
