@@ -65,6 +65,9 @@ const Navbar = () => {
           <Link to="/calendar" className="text-sm font-body text-primary-foreground/70 hover:text-primary-foreground transition-colors">
             Calendario
           </Link>
+          <Link to="/statistics" className="text-sm font-body text-primary-foreground/70 hover:text-primary-foreground transition-colors">
+            Estadísticas
+          </Link>
           {!loading && user ? (
             <>
               <Link to="/groups" className="text-sm font-body text-primary-foreground/70 hover:text-primary-foreground transition-colors">
@@ -95,6 +98,9 @@ const Navbar = () => {
         </div>
 
         <div className="md:hidden flex items-center gap-3">
+          <Link to="/statistics" className="text-primary-foreground/70 hover:text-primary-foreground text-xs font-body">
+            Stats
+          </Link>
           {!loading && user ? (
             <>
               <Link to="/notifications" className="relative text-primary-foreground/70 hover:text-primary-foreground">
