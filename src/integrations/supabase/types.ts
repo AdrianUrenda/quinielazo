@@ -46,8 +46,12 @@ export type Database = {
           jornada: number | null
           kickoff_utc: string
           last_synced_at: string | null
+          leg_label: string | null
+          round_label: string | null
+          round_order: number | null
           stadium: string | null
           status: string
+          status_detail: string | null
         }
         Insert: {
           api_fixture_id?: number
@@ -62,8 +66,12 @@ export type Database = {
           jornada?: number | null
           kickoff_utc: string
           last_synced_at?: string | null
+          leg_label?: string | null
+          round_label?: string | null
+          round_order?: number | null
           stadium?: string | null
           status?: string
+          status_detail?: string | null
         }
         Update: {
           api_fixture_id?: number
@@ -78,8 +86,12 @@ export type Database = {
           jornada?: number | null
           kickoff_utc?: string
           last_synced_at?: string | null
+          leg_label?: string | null
+          round_label?: string | null
+          round_order?: number | null
           stadium?: string | null
           status?: string
+          status_detail?: string | null
         }
         Relationships: []
       }
