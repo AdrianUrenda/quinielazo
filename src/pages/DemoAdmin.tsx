@@ -136,7 +136,7 @@ const DemoAdmin = () => {
           </Button>
 
           <h1 className="text-3xl md:text-4xl font-display text-foreground tracking-wide mb-2">ADMIN — GRUPO DEMO</h1>
-          <p className="text-sm text-muted-foreground font-body mb-8">Liga MX · Clausura 2026 · Jornadas 13-17</p>
+          <p className="text-sm text-muted-foreground font-body mb-8">Liga MX · Clausura 2026 · Liguilla</p>
 
           {/* Reset */}
           <div className="card-elevated rounded-2xl p-6 mb-6 flex items-center justify-between">
