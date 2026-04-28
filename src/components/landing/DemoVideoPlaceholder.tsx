@@ -39,7 +39,7 @@ const DemoVideoPlaceholder = () => {
                     Quinielazo demo
                   </span>
                 </div>
-                <span className="rounded-full bg-gold px-3 py-1 font-body text-xs font-bold text-gold-foreground">
+                <span className="rounded-full bg-gold px-3 py-1 font-body text-xs font-bold text-accent-foreground">
                   Próximamente
                 </span>
               </div>

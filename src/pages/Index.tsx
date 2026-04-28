@@ -1,7 +1,7 @@
 import Navbar from "@/components/landing/Navbar";
 import Hero from "@/components/landing/Hero";
 import Features from "@/components/landing/Features";
-import MatchCalendarPreview from "@/components/landing/MatchCalendarPreview";
+import DemoVideoPlaceholder from "@/components/landing/DemoVideoPlaceholder";
 import Pricing from "@/components/landing/Pricing";
 import Footer from "@/components/landing/Footer";
 
@@ -11,7 +11,7 @@ const Index = () => {
       <Navbar />
       <Hero />
       <Features />
-      <MatchCalendarPreview />
+      <DemoVideoPlaceholder />
       <Pricing />
       <Footer />
     </div>
