@@ -201,10 +201,21 @@ Deno.serve(async (req) => {
       });
 
       if (rows.length) {
-        const { error } = await supabase
+        const fixtureIds = rows.map((row) => row.api_fixture_id);
+        const { data: existing, error: existingError } = await supabase
           .from("demo_matches")
-          .upsert(rows, { onConflict: "api_fixture_id" });
-        if (error) throw error;
+          .select("id, api_fixture_id")
+          .in("api_fixture_id", fixtureIds);
+        if (existingError) throw existingError;
+
+        const existingByFixture = new Map((existing || []).map((match: any) => [match.api_fixture_id, match.id]));
+        for (const row of rows) {
+          const existingId = existingByFixture.get(row.api_fixture_id);
+          const result = existingId
+            ? await supabase.from("demo_matches").update(row).eq("id", existingId)
+            : await supabase.from("demo_matches").insert(row);
+          if (result.error) throw result.error;
+        }
       }
 
       const finishedRows = rows.filter((row) => row.status === "finished" && row.home_score !== null && row.away_score !== null);
