@@ -7,15 +7,13 @@ const corsHeaders = {
 };
 
 const priceMap: Record<string, number> = {
-  basico: 4900,
-  familiar: 9900,
-  grande: 19900,
+  familiar: 4900,
+  grande: 9900,
 };
 
 const tierLabels: Record<string, string> = {
-  basico: "Básico (hasta 10 miembros)",
   familiar: "Familiar (hasta 20 miembros)",
-  grande: "Grande (miembros ilimitados)",
+  grande: "Grande (21 miembros o más)",
 };
 
 const maxMembersMap: Record<string, number> = {
@@ -30,7 +28,6 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY")!;
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
@@ -64,12 +61,48 @@ Deno.serve(async (req) => {
       });
     }
 
-    if (!tier || !priceMap[tier]) {
+    if (!tier || !maxMembersMap[tier]) {
       return new Response(JSON.stringify({ error: "Plan inválido" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    if (tier === "basico") {
+      const { data: group, error: groupError } = await supabase
+        .from("groups")
+        .insert({
+          name: name.trim(),
+          description: description?.trim() || null,
+          access_code: access_code?.trim() || null,
+          tier,
+          max_members: maxMembersMap[tier],
+          admin_user_id: user.id,
+          stripe_payment_id: null,
+        })
+        .select("id")
+        .single();
+
+      if (groupError) throw groupError;
+
+      const { error: memberError } = await supabase.from("group_members").insert({
+        group_id: group.id,
+        user_id: user.id,
+        status: "approved",
+      });
+
+      if (memberError) throw memberError;
+
+      const origin = req.headers.get("origin") || new URL(req.url).origin;
+      const inviteLink = `${origin}/join/${group.id}${access_code?.trim() ? `?code=${encodeURIComponent(access_code.trim())}` : ""}`;
+
+      return new Response(JSON.stringify({ groupId: group.id, inviteLink }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY")!;
 
     if (access_code && (access_code.length < 4 || access_code.length > 8 || !/^[a-zA-Z0-9]+$/.test(access_code))) {
       return new Response(JSON.stringify({ error: "Código de acceso inválido" }), {
