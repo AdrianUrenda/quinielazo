@@ -22,7 +22,7 @@ type Tier = "basico" | "familiar" | "grande";
 const tiers: { value: Tier; label: string; desc: string; price: string }[] = [
   { value: "basico", label: "Básico", desc: "Hasta 10 miembros", price: "Gratis" },
   { value: "familiar", label: "Familiar", desc: "Hasta 20 miembros", price: "$49 MXN" },
-  { value: "grande", label: "Grande", desc: "Miembros ilimitados", price: "$99 MXN" },
+  { value: "grande", label: "Grande", desc: "21 miembros o más", price: "$99 MXN" },
 ];
 
 const maxMembersMap: Record<Tier, number> = { basico: 10, familiar: 20, grande: 99999 };
