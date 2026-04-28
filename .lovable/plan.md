@@ -1,52 +1,27 @@
-Plan para modificar los modelos de pago de creación de grupos
+Plan para actualizar la landing page:
 
-1. Actualizar precios en la landing page
-- Cambiar la tarjeta del plan Básico a “Gratis” / “$0 MXN”.
-- Cambiar Familiar de $99 a $49 MXN.
-- Cambiar Grande de $199 a $99 MXN.
-- Mantener las capacidades actuales:
-  - Básico: hasta 10 miembros
-  - Familiar: hasta 20 miembros
-  - Grande: 21 miembros o más / ilimitado
+1. Quitar la sección actual de CALENDARIO de la landing
+   - Eliminar la importación y el render de `MatchCalendarPreview` en `src/pages/Index.tsx`.
+   - Mantener intacta la página `/calendar` y su navegación; solo se removerá el bloque de vista previa en la página principal.
 
-2. Actualizar el modal de creación de grupos
-- Cambiar la lista de planes en `CreateGroupModal` con los mismos precios nuevos.
-- Para Básico, cambiar el CTA de “Continuar al pago” a una acción de creación gratuita, por ejemplo “Crear grupo gratis”.
-- Mantener “Continuar al pago” para Familiar y Grande.
-- Cuando el usuario seleccione Básico, no enviarlo a Stripe.
-- Cuando el usuario seleccione Familiar o Grande, conservar el checkout de Stripe.
+2. Crear una nueva sección de placeholder para video demo
+   - Añadir un componente de landing, por ejemplo `DemoVideoPlaceholder`, con un bloque visual tipo reproductor de video.
+   - Ubicarlo inmediatamente después de `¿CÓMO FUNCIONA?`, reemplazando el espacio que ocupaba el calendario.
+   - El placeholder incluirá un marco responsivo 16:9, icono/botón de play, texto breve como “Video demo próximamente” o “Mira cómo crear tu quiniela en segundos”, y un estilo consistente con las tarjetas actuales.
 
-3. Implementar creación directa del grupo gratuito
-- Modificar la Edge Function `create-checkout-session` para manejar dos caminos:
-  - `basico`: crear el grupo directamente en Supabase sin sesión de Stripe, con `tier = basico`, `max_members = 10` y `stripe_payment_id = null` o un identificador interno gratuito si conviene para trazabilidad.
-  - `familiar` / `grande`: crear sesión de Stripe como actualmente.
-- Agregar la membresía del administrador como `approved` inmediatamente al crear el grupo gratuito, igual que hace el webhook después de un pago exitoso.
-- Responder al frontend con `{ groupId, inviteLink }` para que el modal muestre la pantalla de éxito sin salir a Stripe.
+3. Conectar visualmente con la sección previa
+   - Usar copy orientado a continuidad, por ejemplo: “Así se vive Quinielazo” / “Próximamente: demo de la app”.
+   - Mantener la estética FIFA/Quinielazo: fondo oscuro, acentos verde/dorado, `font-display`, bordes redondeados y sombras/elevación existentes.
 
-4. Actualizar precios de Stripe en el backend
-- Cambiar `priceMap` en `supabase/functions/create-checkout-session/index.ts`:
-  - `familiar: 4900`
-  - `grande: 9900`
-- Remover a Básico del flujo de cobro de Stripe o permitirlo explícitamente como plan gratuito sin `line_items`.
-- Actualizar `tierLabels` para reflejar los nombres/capacidades correctas.
-- Conservar metadatos (`tier`, `max_members`, `group_name`, etc.) para que el webhook siga creando correctamente los grupos pagados.
+4. Responsividad
+   - En móvil, el video placeholder ocupará el ancho disponible con padding cómodo.
+   - En desktop, quedará centrado con ancho máximo para no romper la jerarquía entre Features y Pricing.
 
-5. Ajustar textos y manejo de respuesta en frontend
-- Si la función devuelve `url`, abrir Stripe como ahora.
-- Si la función devuelve `groupId` e `inviteLink`, mostrar el estado de éxito existente del modal y permitir copiar la invitación.
-- Actualizar mensajes de error/carga para distinguir “creando grupo” vs “iniciando pago”.
+Archivos a modificar:
+- `src/pages/Index.tsx`
+- Nuevo archivo: `src/components/landing/DemoVideoPlaceholder.tsx`
 
-6. Verificación esperada
-- Básico crea el grupo sin checkout y el usuario aparece como admin/miembro aprobado.
-- Familiar abre Stripe con $49 MXN.
-- Grande abre Stripe con $99 MXN.
-- La landing y el modal muestran precios consistentes.
-- El webhook de Stripe sigue funcionando para planes pagados sin afectar grupos gratuitos.
-
-Detalles técnicos
-- Archivos principales a modificar:
-  - `src/components/landing/Pricing.tsx`
-  - `src/components/groups/CreateGroupModal.tsx`
-  - `supabase/functions/create-checkout-session/index.ts`
-- No se requiere cambio de esquema de base de datos: los campos existentes `tier`, `max_members` y `stripe_payment_id` ya soportan un plan gratuito.
-- Se mantendrá la API key de Stripe únicamente en la Edge Function; no se expondrá nada al frontend.
+No se tocará:
+- `src/pages/MatchCalendar.tsx`
+- Rutas de `/calendar`
+- La integración de API-Football del calendario
