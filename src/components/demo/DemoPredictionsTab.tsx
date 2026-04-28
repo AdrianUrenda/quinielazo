@@ -188,6 +188,7 @@ const DemoPredictionsTab = ({ userId }: Props) => {
 
   const lastUpdated = useMemo(() => {
     const latest = (matches || [])
+      .filter((match: any) => (match.round_label || match.jornada >= 900) && isPendingClausuraFixture(match))
       .map((match: any) => match.last_synced_at)
       .filter(Boolean)
       .sort()
