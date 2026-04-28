@@ -12,9 +12,9 @@ const sharedFeatures = [
 ];
 
 const tiers = [
-  { name: "Básico", price: "$49", members: "Hasta 10 miembros", popular: false, features: sharedFeatures },
-  { name: "Familiar", price: "$99", members: "Hasta 20 miembros", popular: true, features: sharedFeatures },
-  { name: "Grande", price: "$199", members: "21 miembros o más", popular: false, features: sharedFeatures },
+  { name: "Básico", price: "Gratis", members: "Hasta 10 miembros", popular: false, features: sharedFeatures },
+  { name: "Familiar", price: "$49", members: "Hasta 20 miembros", popular: true, features: sharedFeatures },
+  { name: "Grande", price: "$99", members: "21 miembros o más", popular: false, features: sharedFeatures },
 ];
 
 const Pricing = () => {
@@ -63,9 +63,11 @@ const Pricing = () => {
 
               <div className="mb-6">
                 <span className="text-5xl font-display">{tier.price}</span>
-                <span className={`text-sm ml-1 ${tier.popular ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
-                  MXN
-                </span>
+                {tier.price !== "Gratis" && (
+                  <span className={`text-sm ml-1 ${tier.popular ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
+                    MXN
+                  </span>
+                )}
               </div>
 
               <ul className="space-y-3 mb-8">
