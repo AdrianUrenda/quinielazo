@@ -32,6 +32,9 @@ const isTeamDefined = (name?: string | null) => {
   return !!normalized && normalized !== "tbd" && normalized !== "por definir";
 };
 
+const isPendingClausuraFixture = (match: any) =>
+  match.status === "upcoming" && new Date(match.kickoff_utc).getTime() > Date.now();
+
 const TeamBadge = ({ name, logo, align = "left" }: { name: string; logo?: string | null; align?: "left" | "right" }) => {
   const defined = isTeamDefined(name);
   const mark = defined && logo ? (
@@ -194,7 +197,7 @@ const DemoPredictionsTab = ({ userId }: Props) => {
 
   const groupedRounds = useMemo(() => {
     const liguilla = (matches || [])
-      .filter((match: any) => (match.round_label || match.jornada >= 900))
+      .filter((match: any) => (match.round_label || match.jornada >= 900) && isPendingClausuraFixture(match))
       .sort((a: any, b: any) => (a.round_order ?? 9) - (b.round_order ?? 9) || new Date(a.kickoff_utc).getTime() - new Date(b.kickoff_utc).getTime());
 
     return liguilla.reduce((acc: Record<string, any[]>, match: any) => {
@@ -250,8 +253,8 @@ const DemoPredictionsTab = ({ userId }: Props) => {
       {!roundNames.length ? (
         <div className="rounded-2xl border border-border bg-card p-8 text-center">
           <CalendarClock className="mx-auto h-8 w-8 text-muted-foreground" />
-          <p className="mt-3 font-display text-xl tracking-wider text-foreground">SIN PARTIDOS DE LIGUILLA</p>
-          <p className="mt-1 text-sm text-muted-foreground font-body">Presiona “Actualizar resultados” para sincronizar el calendario desde API-Football.</p>
+          <p className="mt-3 font-display text-xl tracking-wider text-foreground">SIN PARTIDOS PENDIENTES</p>
+          <p className="mt-1 text-sm text-muted-foreground font-body">Presiona “Actualizar resultados” para sincronizar la fase pendiente del Clausura desde API-Football.</p>
         </div>
       ) : (
         roundNames.map((roundName) => (
