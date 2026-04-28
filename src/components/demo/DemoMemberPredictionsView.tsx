@@ -7,6 +7,11 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, MapPin } from "lucide-react";
 import { motion } from "framer-motion";
 
+const isPendingClausuraFixture = (match: any) =>
+  (match.round_label || match.jornada >= 900) &&
+  match.status === "upcoming" &&
+  new Date(match.kickoff_utc).getTime() > Date.now();
+
 interface Props {
   memberId: string;
   memberName: string;
@@ -50,7 +55,7 @@ const DemoMemberPredictionsView = ({ memberId, memberName, onBack }: Props) => {
     );
   }
 
-  const matchesWithPredictions = matches?.filter((m) => predictionMap.has(m.id)) || [];
+  const matchesWithPredictions = matches?.filter((m) => isPendingClausuraFixture(m) && predictionMap.has(m.id)) || [];
 
   return (
     <div className="space-y-4">

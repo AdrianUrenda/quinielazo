@@ -22,6 +22,11 @@ import { ArrowLeft, Users, Trash2, Loader2, Check, ChevronDown, ChevronUp } from
 import Navbar from "@/components/landing/Navbar";
 import Footer from "@/components/landing/Footer";
 
+const isPendingClausuraFixture = (match: any) =>
+  (match.round_label || match.jornada >= 900) &&
+  match.status === "upcoming" &&
+  new Date(match.kickoff_utc).getTime() > Date.now();
+
 const SUPABASE_PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID;
 
 const DemoAdmin = () => {
@@ -117,7 +122,9 @@ const DemoAdmin = () => {
   if (!user) { navigate("/login"); return null; }
 
   // Group matches by jornada
-  const matchesByJornada = (matches || []).reduce((acc: Record<number, any[]>, m: any) => {
+  const pendingClausuraMatches = (matches || []).filter(isPendingClausuraFixture);
+
+  const matchesByJornada = pendingClausuraMatches.reduce((acc: Record<number, any[]>, m: any) => {
     const j = m.jornada || 0;
     if (!acc[j]) acc[j] = [];
     acc[j].push(m);
@@ -143,7 +150,7 @@ const DemoAdmin = () => {
             <div>
               <h2 className="font-display text-lg text-foreground tracking-wider">CONTROLES</h2>
               <p className="text-xs text-muted-foreground font-body mt-1">
-                {matches?.length || 0} partidos · {matches?.filter((m: any) => m.status === "finished").length || 0} finalizados
+                {pendingClausuraMatches.length} partidos pendientes · Clausura
               </p>
             </div>
             <AlertDialog>

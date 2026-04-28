@@ -33,17 +33,18 @@ const DemoLeaderboardTab = ({ currentUserId }: Props) => {
         .select("user_id, points_awarded, predicted_home_score, predicted_away_score, demo_match_id");
       if (predErr) throw predErr;
 
-      // Get finished matches to verify exact scores
-      const { data: finishedMatches } = await supabase
+      // Only count Clausura demo matches, never stale Apertura results
+      const { data: clausuraMatches } = await supabase
         .from("demo_matches")
-        .select("id, home_score, away_score")
-        .eq("status", "finished");
+        .select("id")
+        .like("round_label", "Clausura%");
 
-      const matchMap = new Map((finishedMatches || []).map((m: any) => [m.id, m]));
+      const clausuraMatchIds = new Set((clausuraMatches || []).map((m: any) => m.id));
 
       // Aggregate
       const statsMap = new Map<string, { points: number; exact: number; correct: number; total: number }>();
       (predictions || []).forEach((p: any) => {
+        if (!clausuraMatchIds.has(p.demo_match_id)) return;
         const current = statsMap.get(p.user_id) || { points: 0, exact: 0, correct: 0, total: 0 };
         if (p.points_awarded !== null && p.points_awarded !== undefined) {
           current.points += p.points_awarded;

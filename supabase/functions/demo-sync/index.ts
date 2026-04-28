@@ -66,6 +66,12 @@ const isLiguillaRound = (round?: string | null) => {
   );
 };
 
+const isPendingFixture = (fixture: any) => {
+  const kickoff = fixture?.fixture?.date ? new Date(fixture.fixture.date) : null;
+  const status = normalizeStatus(fixture?.fixture?.status?.short ?? "NS");
+  return status === "upcoming" && !!kickoff && kickoff.getTime() > Date.now();
+};
+
 const getLegLabel = (round: string | null | undefined, indexInRound: number) => {
   const lower = (round ?? "").toLowerCase();
   if (lower.includes("1st") || lower.includes("ida")) return "Ida";
@@ -161,7 +167,9 @@ Deno.serve(async (req) => {
           const all = await fetchFixtures(apiKey, season);
           collected.push(...all.filter((fixture: any) => isLiguillaRound(fixture?.league?.round)));
         }
-        fixtures = dedupeFixtures(collected).filter((fixture) => isLiguillaRound(fixture?.league?.round));
+        fixtures = dedupeFixtures(collected).filter(
+          (fixture) => isLiguillaRound(fixture?.league?.round) && isPendingFixture(fixture)
+        );
         if (fixtures.length) {
           selectedSeason = season;
           break;
@@ -200,6 +208,28 @@ Deno.serve(async (req) => {
           last_synced_at: new Date().toISOString(),
         };
       });
+
+      const staleQuery = supabase
+        .from("demo_matches")
+        .select("id")
+        .gte("jornada", 900)
+        .or(`status.neq.upcoming,kickoff_utc.lt.${new Date().toISOString()}`);
+      const { data: staleMatches, error: staleError } = await staleQuery;
+      if (staleError) throw staleError;
+      const staleIds = (staleMatches || []).map((match: any) => match.id);
+      if (staleIds.length) {
+        const { error: deletePredictionsError } = await supabase
+          .from("demo_predictions")
+          .delete()
+          .in("demo_match_id", staleIds);
+        if (deletePredictionsError) throw deletePredictionsError;
+
+        const { error: deleteMatchesError } = await supabase
+          .from("demo_matches")
+          .delete()
+          .in("id", staleIds);
+        if (deleteMatchesError) throw deleteMatchesError;
+      }
 
       if (rows.length) {
         const fixtureIds = rows.map((row) => row.api_fixture_id);
