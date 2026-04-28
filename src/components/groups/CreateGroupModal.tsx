@@ -20,9 +20,9 @@ interface Props {
 type Tier = "basico" | "familiar" | "grande";
 
 const tiers: { value: Tier; label: string; desc: string; price: string }[] = [
-  { value: "basico", label: "Básico", desc: "Hasta 10 miembros", price: "$49 MXN" },
-  { value: "familiar", label: "Familiar", desc: "Hasta 20 miembros", price: "$99 MXN" },
-  { value: "grande", label: "Grande", desc: "Miembros ilimitados", price: "$199 MXN" },
+  { value: "basico", label: "Básico", desc: "Hasta 10 miembros", price: "Gratis" },
+  { value: "familiar", label: "Familiar", desc: "Hasta 20 miembros", price: "$49 MXN" },
+  { value: "grande", label: "Grande", desc: "21 miembros o más", price: "$99 MXN" },
 ];
 
 const maxMembersMap: Record<Tier, number> = { basico: 10, familiar: 20, grande: 99999 };
@@ -67,14 +67,18 @@ const CreateGroupModal = ({ open, onOpenChange }: Props) => {
 
       if (error) throw error;
 
-      if (data?.url) {
+      if (data?.groupId && data?.inviteLink) {
+        setSuccess({ groupId: data.groupId, inviteLink: data.inviteLink });
+        queryClient.invalidateQueries({ queryKey: ["my-groups"] });
+        setLoading(false);
+      } else if (data?.url) {
         // Use window.open as fallback for iframe environments (e.g. Lovable preview)
         const opened = window.open(data.url, "_blank");
         if (!opened) {
           window.location.href = data.url;
         }
       } else {
-        throw new Error("No se recibió URL de pago");
+        throw new Error("No se recibió respuesta válida");
       }
     } catch (err: any) {
       toast.error(err.message || "Error al iniciar el pago");
@@ -199,7 +203,7 @@ const CreateGroupModal = ({ open, onOpenChange }: Props) => {
 
               <Button className="w-full h-11" onClick={handleSubmit} disabled={loading}>
                 {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                {loading ? "Creando..." : "Continuar al pago"}
+                {loading ? "Creando..." : tier === "basico" ? "Crear grupo gratis" : "Continuar al pago"}
               </Button>
             </div>
           </>

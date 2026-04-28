@@ -1,77 +1,52 @@
+Plan para modificar los modelos de pago de creación de grupos
 
+1. Actualizar precios en la landing page
+- Cambiar la tarjeta del plan Básico a “Gratis” / “$0 MXN”.
+- Cambiar Familiar de $99 a $49 MXN.
+- Cambiar Grande de $199 a $99 MXN.
+- Mantener las capacidades actuales:
+  - Básico: hasta 10 miembros
+  - Familiar: hasta 20 miembros
+  - Grande: 21 miembros o más / ilimitado
 
-## Plan: Página "Mi Perfil" con Editar Perfil, Billetera, Cerrar Sesión y Eliminar Cuenta
+2. Actualizar el modal de creación de grupos
+- Cambiar la lista de planes en `CreateGroupModal` con los mismos precios nuevos.
+- Para Básico, cambiar el CTA de “Continuar al pago” a una acción de creación gratuita, por ejemplo “Crear grupo gratis”.
+- Mantener “Continuar al pago” para Familiar y Grande.
+- Cuando el usuario seleccione Básico, no enviarlo a Stripe.
+- Cuando el usuario seleccione Familiar o Grande, conservar el checkout de Stripe.
 
-### Resumen
-Reemplazar el botón "Cerrar sesión" en la Navbar por un enlace "Mi Perfil" (mismo estilo que Calendario/Mis Grupos). Crear una nueva página `/profile` con cuatro secciones.
+3. Implementar creación directa del grupo gratuito
+- Modificar la Edge Function `create-checkout-session` para manejar dos caminos:
+  - `basico`: crear el grupo directamente en Supabase sin sesión de Stripe, con `tier = basico`, `max_members = 10` y `stripe_payment_id = null` o un identificador interno gratuito si conviene para trazabilidad.
+  - `familiar` / `grande`: crear sesión de Stripe como actualmente.
+- Agregar la membresía del administrador como `approved` inmediatamente al crear el grupo gratuito, igual que hace el webhook después de un pago exitoso.
+- Responder al frontend con `{ groupId, inviteLink }` para que el modal muestre la pantalla de éxito sin salir a Stripe.
 
----
+4. Actualizar precios de Stripe en el backend
+- Cambiar `priceMap` en `supabase/functions/create-checkout-session/index.ts`:
+  - `familiar: 4900`
+  - `grande: 9900`
+- Remover a Básico del flujo de cobro de Stripe o permitirlo explícitamente como plan gratuito sin `line_items`.
+- Actualizar `tierLabels` para reflejar los nombres/capacidades correctas.
+- Conservar metadatos (`tier`, `max_members`, `group_name`, etc.) para que el webhook siga creando correctamente los grupos pagados.
 
-### Cambios en la base de datos
+5. Ajustar textos y manejo de respuesta en frontend
+- Si la función devuelve `url`, abrir Stripe como ahora.
+- Si la función devuelve `groupId` e `inviteLink`, mostrar el estado de éxito existente del modal y permitir copiar la invitación.
+- Actualizar mensajes de error/carga para distinguir “creando grupo” vs “iniciando pago”.
 
-**Migración SQL** para permitir que los usuarios eliminen su propia cuenta:
-- Crear una función `delete_user_account()` con `SECURITY DEFINER` que elimine el perfil, membresías, predicciones, notificaciones y finalmente el usuario de `auth.users`.
-- Agregar política RLS de DELETE en `profiles` para el propio usuario.
+6. Verificación esperada
+- Básico crea el grupo sin checkout y el usuario aparece como admin/miembro aprobado.
+- Familiar abre Stripe con $49 MXN.
+- Grande abre Stripe con $99 MXN.
+- La landing y el modal muestran precios consistentes.
+- El webhook de Stripe sigue funcionando para planes pagados sin afectar grupos gratuitos.
 
----
-
-### Archivos a modificar/crear
-
-#### 1. `src/components/landing/Navbar.tsx`
-- Reemplazar el botón rojo "Cerrar sesión" por un `<Link to="/profile">` con el mismo estilo de texto que "Calendario" y "Mis Grupos" (`text-sm font-body text-primary-foreground/70 hover:text-primary-foreground`).
-- En mobile: reemplazar el botón de icono LogOut por un enlace a `/profile` con icono `User`.
-
-#### 2. `src/pages/Profile.tsx` (nuevo)
-Página protegida con cuatro secciones en tarjetas:
-
-**Sección 1 — Editar Perfil**
-- Campo editable: Nombre de usuario (carga actual de `profiles.display_name`, actualiza con `supabase.from("profiles").update()`).
-- Botón "Cambiar contraseña" que llama a `supabase.auth.updateUser({ password })` — solo visible si el usuario NO se registró con Google (se detecta revisando `user.app_metadata.provider`).
-
-**Sección 2 — Billetera (placeholder)**
-- Tarjeta mostrando saldo: `$0.00 MXN` hardcoded.
-- Botón "Solicitar retiro" deshabilitado con tooltip "Próximamente".
-
-**Sección 3 — Cerrar Sesión**
-- Botón rojo/blanco reutilizando la lógica existente de `handleLogout`.
-
-**Sección 4 — Eliminar Cuenta**
-- Botón destructivo que abre un `AlertDialog` con advertencia de irreversibilidad.
-- Al confirmar: llama a una función RPC `delete_user_account()` en Supabase, cierra sesión y redirige a `/`.
-
-#### 3. `src/App.tsx`
-- Agregar ruta `/profile` envuelta en `<ProtectedRoute>`.
-- Importar el nuevo componente `Profile`.
-
----
-
-### Detalles técnicos
-
-**Detección de proveedor de autenticación:**
-```typescript
-const isGoogleUser = user?.app_metadata?.provider === "google";
-```
-
-**Función SQL `delete_user_account`:**
-```sql
-CREATE OR REPLACE FUNCTION public.delete_user_account()
-RETURNS void
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-BEGIN
-  DELETE FROM public.predictions WHERE user_id = auth.uid();
-  DELETE FROM public.group_members WHERE user_id = auth.uid();
-  DELETE FROM public.notifications WHERE user_id = auth.uid();
-  DELETE FROM public.demo_predictions WHERE user_id = auth.uid();
-  DELETE FROM public.demo_group_members WHERE user_id = auth.uid();
-  DELETE FROM public.profiles WHERE id = auth.uid();
-  -- Delete groups where user is admin
-  DELETE FROM public.groups WHERE admin_user_id = auth.uid();
-  -- Delete auth user
-  DELETE FROM auth.users WHERE id = auth.uid();
-END;
-$$;
-```
-
+Detalles técnicos
+- Archivos principales a modificar:
+  - `src/components/landing/Pricing.tsx`
+  - `src/components/groups/CreateGroupModal.tsx`
+  - `supabase/functions/create-checkout-session/index.ts`
+- No se requiere cambio de esquema de base de datos: los campos existentes `tier`, `max_members` y `stripe_payment_id` ya soportan un plan gratuito.
+- Se mantendrá la API key de Stripe únicamente en la Edge Function; no se expondrá nada al frontend.
