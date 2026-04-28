@@ -31,7 +31,7 @@ const Pricing = () => {
             CREA TU GRUPO
           </h2>
           <p className="text-lg text-muted-foreground font-body max-w-2xl mx-auto">
-            Pago único por todo el Mundial. Sin suscripciones ni cargos recurrentes.
+            Empieza gratis o elige un pago único por todo el Mundial. Sin suscripciones ni cargos recurrentes.
           </p>
         </motion.div>
 
