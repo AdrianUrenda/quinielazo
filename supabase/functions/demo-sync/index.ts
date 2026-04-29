@@ -137,6 +137,17 @@ const fetchFixtures = async (apiKey: string, season: string, round?: string) => 
   return payload.response ?? [];
 };
 
+const fetchRounds = async (apiKey: string, season: string) => {
+  const params = new URLSearchParams({ league: LIGA_MX_LEAGUE_ID, season });
+  const response = await fetch(`${API_BASE_URL}/fixtures/rounds?${params.toString()}`, {
+    headers: { "x-apisports-key": apiKey },
+  });
+  const payload = await response.json();
+  if (!response.ok) throw new Error(`API-Football ${response.status}: ${JSON.stringify(payload)}`);
+  if (isApiError(payload)) throw new Error(`API-Football errors: ${JSON.stringify(payload.errors)}`);
+  return (payload.response ?? []).filter((round: string) => isLiguillaRound(round));
+};
+
 const dedupeFixtures = (fixtures: any[]) => {
   const map = new Map<number, any>();
   fixtures.forEach((fixture) => {
