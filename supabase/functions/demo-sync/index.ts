@@ -210,28 +210,17 @@ Deno.serve(async (req) => {
       const apiKey = Deno.env.get("API_FOOTBALL_KEY");
       if (!apiKey) throw new Error("API_FOOTBALL_KEY is not configured");
 
-      let selectedSeason = SEASONS[0];
       let fixtures: any[] = [];
 
-      for (const season of SEASONS) {
-        const collected: any[] = [];
-        const liguilla = await fetchFixtures(apiKey, season, "Liguilla");
-        collected.push(...liguilla);
-        for (const round of ROUND_PROBES.filter((r) => r !== "Liguilla")) {
-          collected.push(...await fetchFixtures(apiKey, season, round));
-        }
-        if (!collected.length) {
-          const all = await fetchFixtures(apiKey, season);
-          collected.push(...all.filter((fixture: any) => isLiguillaRound(fixture?.league?.round)));
-        }
-        fixtures = dedupeFixtures(collected).filter(
-          (fixture) => isLiguillaRound(fixture?.league?.round)
-        );
-        if (fixtures.length) {
-          selectedSeason = season;
-          break;
-        }
+      const rounds = await fetchRounds(apiKey, CLAUSURA_SEASON);
+      const collected: any[] = [];
+      for (const round of rounds) {
+        collected.push(...await fetchFixtures(apiKey, CLAUSURA_SEASON, round));
       }
+      if (!collected.length) {
+        collected.push(...await fetchFixtures(apiKey, CLAUSURA_SEASON));
+      }
+      fixtures = dedupeFixtures(collected).filter(isClausuraLiguillaFixture);
 
       const legLabels = assignLegLabels(fixtures);
       const rows = fixtures.map((fixture: any) => {
@@ -249,8 +238,8 @@ Deno.serve(async (req) => {
           stadium: fixture.fixture.venue?.name ?? "",
           city: fixture.fixture.venue?.city ?? "",
           status,
-          home_score: status === "finished" ? fixture.goals?.home ?? null : null,
-          away_score: status === "finished" ? fixture.goals?.away ?? null : null,
+          home_score: status === "finished" && isClausuraFixture(fixture) ? fixture.goals?.home ?? null : null,
+          away_score: status === "finished" && isClausuraFixture(fixture) ? fixture.goals?.away ?? null : null,
           home_team: home.name || "Por definir",
           away_team: away.name || "Por definir",
           home_team_logo: home.logo,
@@ -297,7 +286,8 @@ Deno.serve(async (req) => {
       return new Response(
         JSON.stringify({
           message: "Liguilla synced",
-          season: selectedSeason,
+          season: CLAUSURA_SEASON,
+          roundsLoaded: rounds,
           fixturesSynced: rows.length,
           predictionsScored,
           updatedAt: new Date().toISOString(),
