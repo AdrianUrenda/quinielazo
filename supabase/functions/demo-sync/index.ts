@@ -8,11 +8,12 @@ const corsHeaders = {
 
 const API_BASE_URL = "https://v3.football.api-sports.io";
 const LIGA_MX_LEAGUE_ID = "262";
-const SEASONS = ["2026", "2025"];
-const ROUND_PROBES = ["Liguilla", "Play-In", "Quarter-finals", "Semi-finals", "Final", "Reclasificacion"];
+const CLAUSURA_SEASON = "2025";
+const CLAUSURA_MIN_DATE = new Date("2026-01-01T00:00:00.000Z");
 const FINISHED = new Set(["FT", "AET", "PEN"]);
 const LIVE = new Set(["1H", "HT", "2H", "ET", "BT", "P", "SUSP", "INT", "LIVE"]);
 const TBD_NAMES = new Set(["", "tbd", "to be defined", "por definir", "undefined", "null"]);
+const EXCLUDED_ROUND_TERMS = ["play-in", "play in", "regular season", "apertura", "group stage"];
 
 const isApiError = (payload: { errors?: unknown }) => {
   if (!payload?.errors) return false;
@@ -40,8 +41,8 @@ const normalizeRound = (round?: string | null) => {
   const value = round ?? "";
   const lower = value.toLowerCase();
 
-  if (lower.includes("play-in") || lower.includes("reclasificacion") || lower.includes("reclasificación")) {
-    return { label: "Play-In", order: 0 };
+  if (lower.includes("reclasificacion") || lower.includes("reclasificación") || lower.includes("relegation round")) {
+    return { label: "Reclasificación", order: 0 };
   }
   if (lower.includes("quarter") || lower.includes("cuarto")) {
     return { label: "Cuartos de Final", order: 1 };
@@ -58,9 +59,10 @@ const normalizeRound = (round?: string | null) => {
 
 const isLiguillaRound = (round?: string | null) => {
   const lower = (round ?? "").toLowerCase();
+  if (EXCLUDED_ROUND_TERMS.some((term) => lower.includes(term))) return false;
   return (
     lower.includes("liguilla") ||
-    lower.includes("play-in") ||
+    lower.includes("relegation round") ||
     lower.includes("quarter") ||
     lower.includes("cuarto") ||
     lower.includes("semi") ||
@@ -69,6 +71,10 @@ const isLiguillaRound = (round?: string | null) => {
     lower.includes("reclasificación")
   );
 };
+
+const isClausuraFixture = (fixture: any) => new Date(fixture?.fixture?.date ?? 0).getTime() >= CLAUSURA_MIN_DATE.getTime();
+
+const isClausuraLiguillaFixture = (fixture: any) => isClausuraFixture(fixture) && isLiguillaRound(fixture?.league?.round);
 
 const getExplicitLegLabel = (round: string | null | undefined) => {
   const lower = (round ?? "").toLowerCase();
