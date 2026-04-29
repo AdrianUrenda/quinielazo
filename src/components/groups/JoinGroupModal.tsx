@@ -130,24 +130,11 @@ const JoinGroupModal = ({ open, onOpenChange, preSelectedGroupId, preSelectedGro
 
     setSubmitting(true);
     try {
-      const { error: insertError } = await supabase.from("group_members").insert({
-        group_id: selectedGroup.id,
-        user_id: user.id,
-        status: "pending" as any,
+      const { error: requestError } = await supabase.rpc("request_group_membership" as any, {
+        _group_id: selectedGroup.id,
+        _access_code: accessCode || null,
       });
-      if (insertError) throw insertError;
-
-      // Create notification for admin
-      const { data: group } = await supabase.from("groups").select("admin_user_id, name").eq("id", selectedGroup.id).single();
-      if (group) {
-        const { data: profile } = await supabase.from("profiles").select("display_name").eq("id", user.id).single();
-        await supabase.from("notifications").insert({
-          user_id: group.admin_user_id,
-          type: "join_request" as any,
-          message: `${profile?.display_name || "Un usuario"} quiere unirse a ${group.name}.`,
-          metadata: { group_id: selectedGroup.id, requester_id: user.id },
-        });
-      }
+      if (requestError) throw requestError;
 
       setSubmitted(true);
       queryClient.invalidateQueries({ queryKey: ["my-groups"] });
