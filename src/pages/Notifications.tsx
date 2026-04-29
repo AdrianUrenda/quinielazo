@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -81,42 +80,6 @@ const Notifications = () => {
     },
     enabled: !!user,
   });
-
-  // Realtime: listen for new pending join requests
-  useEffect(() => {
-    if (!adminGroups?.length) return;
-    const channel = supabase
-      .channel("pending-requests-realtime")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "group_members" },
-        (payload) => {
-          const row = payload.new as any;
-          if (row && adminGroups.some((g) => g.id === row.group_id)) {
-            queryClient.invalidateQueries({ queryKey: ["pending-requests"] });
-          }
-        }
-      )
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [adminGroups, queryClient]);
-
-  // Realtime: listen for new notifications for this user
-  useEffect(() => {
-    if (!user) return;
-    const channel = supabase
-      .channel("user-notifications-realtime")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ["user-notifications", user.id] });
-          queryClient.invalidateQueries({ queryKey: ["unread-notifications", user.id] });
-        }
-      )
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [user, queryClient]);
 
   // Mark notifications as read
   const markRead = useMutation({
