@@ -19,24 +19,6 @@ const Navbar = () => {
     setTimeout(() => setBellRinging(false), 800);
   }, []);
 
-  // Realtime: refresh unread count when notifications change
-  useEffect(() => {
-    if (!user) return;
-    const channel = supabase
-      .channel("navbar-notifications")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ["unread-notifications", user.id] });
-          triggerBellRing();
-          toast("🔔 Nueva notificación", { duration: 3000 });
-        }
-      )
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [user, queryClient, triggerBellRing]);
-
   const { data: unreadCount } = useQuery({
     queryKey: ["unread-notifications", user?.id],
     queryFn: async () => {
@@ -50,6 +32,15 @@ const Navbar = () => {
     enabled: !!user,
     refetchInterval: 30000,
   });
+
+  useEffect(() => {
+    if (!user || unreadCount === undefined) return;
+    if (prevCountRef.current !== null && unreadCount > prevCountRef.current) {
+      triggerBellRing();
+      toast("🔔 Nueva notificación", { duration: 3000 });
+    }
+    prevCountRef.current = unreadCount;
+  }, [unreadCount, user, triggerBellRing]);
 
 
 
