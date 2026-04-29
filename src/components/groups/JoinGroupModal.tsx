@@ -7,18 +7,31 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Loader2, Search, CheckCircle, Users, Lock } from "lucide-react";
+
+type DiscoverableGroup = {
+  id: string;
+  name: string;
+  description: string | null;
+  max_members: number;
+  has_access_code: boolean;
+  tier: string;
+};
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   preSelectedGroupId?: string | null;
+  preSelectedGroup?: DiscoverableGroup | null;
   preFilledCode?: string | null;
 }
 
-const JoinGroupModal = ({ open, onOpenChange, preSelectedGroupId, preFilledCode }: Props) => {
+const JoinGroupModal = ({ open, onOpenChange, preSelectedGroupId, preSelectedGroup, preFilledCode }: Props) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const [search, setSearch] = useState("");
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
@@ -33,9 +46,9 @@ const JoinGroupModal = ({ open, onOpenChange, preSelectedGroupId, preFilledCode 
     queryFn: async () => {
       const { data, error } = await supabase.from("groups_discovery" as any).select("id, name, description, max_members, has_access_code, tier").order("name");
       if (error) throw error;
-      return (data as unknown as { id: string; name: string; description: string | null; max_members: number; has_access_code: boolean; tier: string }[]);
+      return (data as unknown as DiscoverableGroup[]);
     },
-    enabled: open,
+    enabled: open && !preSelectedGroup,
   });
 
   // Get member count for selected group via security definer function
@@ -67,9 +80,10 @@ const JoinGroupModal = ({ open, onOpenChange, preSelectedGroupId, preFilledCode 
   });
 
   useEffect(() => {
-    if (preSelectedGroupId) setSelectedGroupId(preSelectedGroupId);
+    if (preSelectedGroup?.id) setSelectedGroupId(preSelectedGroup.id);
+    else if (preSelectedGroupId) setSelectedGroupId(preSelectedGroupId);
     if (preFilledCode) setAccessCode(preFilledCode);
-  }, [preSelectedGroupId, preFilledCode]);
+  }, [preSelectedGroupId, preSelectedGroup, preFilledCode]);
 
   const filtered = useMemo(() => {
     if (!allGroups || !search.trim()) return [];
@@ -77,12 +91,16 @@ const JoinGroupModal = ({ open, onOpenChange, preSelectedGroupId, preFilledCode 
     return allGroups.filter((g) => g.name.toLowerCase().includes(q)).slice(0, 10);
   }, [allGroups, search]);
 
-  const selectedGroup = allGroups?.find((g) => g.id === selectedGroupId);
+  const selectedGroup = preSelectedGroup?.id === selectedGroupId ? preSelectedGroup : allGroups?.find((g) => g.id === selectedGroupId);
   const currentMemberCount = memberCount ?? 0;
 
   const handleSubmit = async () => {
-    if (!selectedGroup || !user) return;
+    if (!selectedGroup) return;
     setError("");
+    if (!user) {
+      navigate("/login", { state: { from: location.pathname + location.search } });
+      return;
+    }
 
     // Edge cases
     if (existingMembership?.status === "approved") {
@@ -142,7 +160,7 @@ const JoinGroupModal = ({ open, onOpenChange, preSelectedGroupId, preFilledCode 
 
   const handleClose = () => {
     setSearch("");
-    setSelectedGroupId(preSelectedGroupId || null);
+    setSelectedGroupId(preSelectedGroup?.id || preSelectedGroupId || null);
     setAccessCode(preFilledCode || "");
     setSubmitted(false);
     setError("");
