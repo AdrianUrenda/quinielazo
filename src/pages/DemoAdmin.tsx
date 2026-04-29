@@ -27,7 +27,7 @@ import { formatMexicoDateTime } from "@/lib/matchCalendar";
 const SUPABASE_PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID;
 
 const roundMeta: Record<string, { label: string; order: number }> = {
-  play_in: { label: "Play-In", order: 0 },
+  reclassification: { label: "Reclasificación", order: 0 },
   quarterfinal: { label: "Cuartos de Final", order: 1 },
   semifinal: { label: "Semifinales", order: 2 },
   final: { label: "Final", order: 3 },
@@ -35,7 +35,7 @@ const roundMeta: Record<string, { label: string; order: number }> = {
 
 const getDemoStage = (match: any) => {
   const value = (match.round_label || "").toLowerCase();
-  if (value.includes("play-in") || value.includes("reclas")) return "play_in";
+  if (value.includes("reclas") || value.includes("relegation round")) return "reclassification";
   if (value.includes("quarter") || value.includes("cuarto")) return "quarterfinal";
   if (value.includes("semi")) return "semifinal";
   if (value.includes("final")) return "final";

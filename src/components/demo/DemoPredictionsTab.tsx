@@ -25,14 +25,14 @@ interface Props {
 
 const demoRoundFilters = [
   { value: "all", label: "Todos" },
-  { value: "play_in", label: "Play-In" },
+  { value: "reclassification", label: "Reclasificación" },
   { value: "quarterfinal", label: "Cuartos" },
   { value: "semifinal", label: "Semis" },
   { value: "final", label: "Final" },
 ];
 
 const roundMeta: Record<string, { stage: string; label: string; order: number }> = {
-  play_in: { stage: "play_in", label: "Play-In", order: 0 },
+  reclassification: { stage: "reclassification", label: "Reclasificación", order: 0 },
   quarterfinal: { stage: "quarterfinal", label: "Cuartos de Final", order: 1 },
   semifinal: { stage: "semifinal", label: "Semifinales", order: 2 },
   final: { stage: "final", label: "Final", order: 3 },
@@ -42,7 +42,7 @@ const normalizeText = (value?: string | null) => (value || "").toLowerCase();
 
 const getDemoStage = (match: any) => {
   const value = normalizeText(match.round_label);
-  if (value.includes("play-in") || value.includes("reclas")) return "play_in";
+  if (value.includes("reclas") || value.includes("relegation round")) return "reclassification";
   if (value.includes("quarter") || value.includes("cuarto")) return "quarterfinal";
   if (value.includes("semi")) return "semifinal";
   if (value.includes("final")) return "final";

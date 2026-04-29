@@ -19,7 +19,7 @@ const TeamLogo = ({ logo, name }: { logo?: string | null; name: string }) =>
 
 const getDemoStageLabel = (round?: string | null) => {
   const value = (round || "").toLowerCase();
-  if (value.includes("play-in") || value.includes("reclas")) return "Play-In";
+  if (value.includes("reclas") || value.includes("relegation round")) return "Reclasificación";
   if (value.includes("quarter") || value.includes("cuarto")) return "Cuartos de Final";
   if (value.includes("semi")) return "Semifinales";
   if (value.includes("final")) return "Final";
