@@ -57,10 +57,12 @@ const GroupDashboard = () => {
   const isAdmin = group?.admin_user_id === user?.id;
   const isApproved = membership?.status === "approved";
 
-  const copyInviteCode = () => {
+  const inviteLink = group?.invite_code ? `${window.location.origin}/join/${group.invite_code}` : "";
+
+  const copyInviteLink = () => {
     if (group?.invite_code) {
-      navigator.clipboard.writeText(group.invite_code);
-      toast.success("Código copiado al portapapeles");
+      navigator.clipboard.writeText(inviteLink);
+      toast.success("Enlace copiado al portapapeles");
     }
   };
 
@@ -124,9 +126,9 @@ const GroupDashboard = () => {
 
               {isAdmin && group.invite_code && (
                 <div className="mt-4 flex items-center gap-2 p-3 rounded-lg bg-muted/50">
-                  <span className="text-xs text-muted-foreground font-body">Código de invitación:</span>
-                  <code className="font-mono text-sm text-foreground font-semibold">{group.invite_code}</code>
-                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={copyInviteCode}>
+                  <span className="text-xs text-muted-foreground font-body">Enlace de invitación:</span>
+                  <code className="font-mono text-xs text-foreground font-semibold break-all flex-1">{inviteLink}</code>
+                  <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={copyInviteLink}>
                     <Copy className="w-3.5 h-3.5" />
                   </Button>
                 </div>
