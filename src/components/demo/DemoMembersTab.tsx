@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { ShieldCheck, Eye } from "lucide-react";
 import { motion } from "framer-motion";
 
+type PublicProfile = { id: string; display_name: string; avatar_url: string | null };
+
 interface Props {
   onViewPredictions: (userId: string, displayName: string) => void;
 }
@@ -23,9 +25,9 @@ const DemoMembersTab = ({ onViewPredictions }: Props) => {
       if (!userIds.length) return [];
 
       const { data: profiles } = await supabase
-        .from("profiles")
-        .select("id, display_name, avatar_url, email")
-        .in("id", userIds);
+        .from("public_profiles" as any)
+        .select("id, display_name, avatar_url")
+        .in("id", userIds) as unknown as { data: PublicProfile[] | null };
 
       const profileMap = new Map(profiles?.map((p) => [p.id, p]));
       return data.map((m) => ({ ...m, profile: profileMap.get(m.user_id) }));
@@ -72,7 +74,7 @@ const DemoMembersTab = ({ onViewPredictions }: Props) => {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-body font-semibold text-foreground truncate">{displayName}</p>
-                <p className="text-xs text-muted-foreground font-body truncate">{m.profile?.email}</p>
+                <p className="text-xs text-muted-foreground font-body truncate">Participante demo</p>
               </div>
               <Badge variant="default" className="text-[10px] shrink-0">Miembro</Badge>
               <Button
