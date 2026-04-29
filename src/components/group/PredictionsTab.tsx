@@ -255,7 +255,7 @@ const PredictionsTab = ({ groupId, userId }: Props) => {
               <h3 className="text-sm font-display tracking-wider text-primary uppercase">{formatMexicoDayHeader(dateKey)}</h3>
             </div>
             <div className="space-y-3">
-              {dayMatches.map((match, index) => (
+              {(dayMatches as any[]).map((match, index) => (
                 <PredictionMatchCard
                   key={match.id}
                   match={match}
