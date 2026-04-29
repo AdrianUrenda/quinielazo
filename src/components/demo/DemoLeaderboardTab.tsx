@@ -3,6 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Medal } from "lucide-react";
 import { motion } from "framer-motion";
 
+type PublicProfile = { id: string; display_name: string; avatar_url: string | null };
+
 interface Props {
   currentUserId: string;
 }
@@ -22,9 +24,9 @@ const DemoLeaderboardTab = ({ currentUserId }: Props) => {
 
       // Get profiles
       const { data: profiles, error: pErr } = await supabase
-        .from("profiles")
+        .from("public_profiles" as any)
         .select("id, display_name, avatar_url")
-        .in("id", userIds);
+        .in("id", userIds) as unknown as { data: PublicProfile[] | null; error: Error | null };
       if (pErr) throw pErr;
 
       // Get all demo predictions with points
