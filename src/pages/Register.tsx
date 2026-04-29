@@ -37,14 +37,14 @@ const Register = () => {
       toast.error(error.message);
     } else {
       toast.success("¡Registro exitoso! Revisa tu email para verificar tu cuenta.");
-      navigate("/login");
+      navigate("/login", { state: { from: redirectTo } });
     }
   };
 
   const handleGoogleRegister = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: window.location.origin + "/groups" },
+      options: { redirectTo: window.location.origin + redirectTo },
     });
     if (error) toast.error(error.message);
   };
@@ -149,7 +149,7 @@ const Register = () => {
 
           <p className="text-center text-sm text-muted-foreground font-body mt-6">
             ¿Ya tienes cuenta?{" "}
-            <Link to="/login" className="text-primary font-semibold hover:underline">
+            <Link to="/login" state={{ from: redirectTo }} className="text-primary font-semibold hover:underline">
               Inicia sesión
             </Link>
           </p>

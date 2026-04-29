@@ -32,7 +32,7 @@ const Login = () => {
   const handleGoogleLogin = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: window.location.origin + "/groups" },
+      options: { redirectTo: window.location.origin + redirectTo },
     });
     if (error) toast.error(error.message);
   };
@@ -126,7 +126,7 @@ const Login = () => {
 
           <p className="text-center text-sm text-muted-foreground font-body mt-6">
             ¿No tienes cuenta?{" "}
-            <Link to="/register" className="text-primary font-semibold hover:underline">
+            <Link to={`/register?redirect=${encodeURIComponent(redirectTo)}`} className="text-primary font-semibold hover:underline">
               Regístrate aquí
             </Link>
           </p>
