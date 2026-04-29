@@ -80,7 +80,7 @@ Deno.serve(async (req) => {
           admin_user_id: user.id,
           stripe_payment_id: null,
         })
-        .select("id")
+        .select("id, invite_code")
         .single();
 
       if (groupError) throw groupError;
@@ -94,7 +94,7 @@ Deno.serve(async (req) => {
       if (memberError) throw memberError;
 
       const origin = req.headers.get("origin") || new URL(req.url).origin;
-      const inviteLink = `${origin}/join/${group.id}${access_code?.trim() ? `?code=${encodeURIComponent(access_code.trim())}` : ""}`;
+      const inviteLink = `${origin}/join/${group.invite_code}`;
 
       return new Response(JSON.stringify({ groupId: group.id, inviteLink }), {
         status: 200,
