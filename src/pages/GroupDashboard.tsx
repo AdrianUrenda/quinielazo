@@ -32,9 +32,9 @@ const GroupDashboard = () => {
   const { data: group, isLoading: groupLoading } = useQuery({
     queryKey: ["group", id],
     queryFn: async () => {
-      const { data, error } = await supabase.from("groups").select("*").eq("id", id!).single();
+      const { data, error } = await supabase.rpc("get_group_details" as any, { _group_id: id! });
       if (error) throw error;
-      return data;
+      return Array.isArray(data) ? data[0] ?? null : data;
     },
     enabled: !!id,
   });

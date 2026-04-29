@@ -477,6 +477,21 @@ export type Database = {
           tier: Database["public"]["Enums"]["group_tier"]
         }[]
       }
+      get_group_details: {
+        Args: { _group_id: string }
+        Returns: {
+          access_code: string
+          admin_user_id: string
+          created_at: string
+          description: string
+          id: string
+          invite_code: string
+          max_members: number
+          name: string
+          prize_description: string
+          tier: Database["public"]["Enums"]["group_tier"]
+        }[]
+      }
       get_group_member_count: { Args: { _group_id: string }; Returns: number }
       has_role: {
         Args: {
