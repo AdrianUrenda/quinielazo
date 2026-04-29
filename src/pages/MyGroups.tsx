@@ -47,10 +47,12 @@ const MyGroups = () => {
 
       if (allGroupIds.size === 0) return [];
 
-      const { data: groupsData } = await supabase
-        .from("groups")
-        .select("id, name, description, admin_user_id")
-        .in("id", Array.from(allGroupIds));
+      const groupsData = (await Promise.all(
+        Array.from(allGroupIds).map(async (groupId) => {
+          const { data } = await supabase.rpc("get_group_details" as any, { _group_id: groupId });
+          return Array.isArray(data) ? data[0] ?? null : data;
+        })
+      )).filter(Boolean);
 
       return (groupsData || []).map((g) => {
         const membership = (memberships || []).find((m) => m.group_id === g.id);
