@@ -19,8 +19,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { User, Wallet, LogOut, Trash2, Save, KeyRound } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { User, LogOut, Trash2, Save, KeyRound } from "lucide-react";
 
 const Profile = () => {
   const { user } = useAuth();
@@ -198,34 +197,7 @@ const Profile = () => {
           </CardContent>
         </Card>
 
-        {/* Section 2: Wallet placeholder */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-xl">
-              <Wallet className="w-5 h-5" />
-              Billetera
-            </CardTitle>
-            <CardDescription>Gestiona tus ganancias y retiros</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="rounded-lg bg-muted p-4 text-center">
-              <p className="text-sm text-muted-foreground">Saldo disponible</p>
-              <p className="text-3xl font-display font-bold text-foreground mt-1">$0.00 MXN</p>
-            </div>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span className="inline-block w-full">
-                  <Button variant="outline" className="w-full" disabled>
-                    Solicitar retiro
-                  </Button>
-                </span>
-              </TooltipTrigger>
-              <TooltipContent>Próximamente</TooltipContent>
-            </Tooltip>
-          </CardContent>
-        </Card>
-
-        {/* Section 3: Logout */}
+        {/* Section 2: Logout */}
         <Card>
           <CardContent className="pt-6">
             <Button
@@ -238,7 +210,7 @@ const Profile = () => {
           </CardContent>
         </Card>
 
-        {/* Section 4: Delete Account */}
+        {/* Section 3: Delete Account */}
         <Card className="border-destructive/30">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-xl text-destructive">
