@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,6 +8,8 @@ import { CheckCircle, XCircle, Bell, Users, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { Navigate, useNavigate } from "react-router-dom";
+
+type PublicProfile = { id: string; display_name: string; avatar_url: string | null };
 
 const Notifications = () => {
   const { user, loading: authLoading } = useAuth();
@@ -48,9 +49,9 @@ const Notifications = () => {
       if (userIds.length === 0) return [];
 
       const { data: profiles } = await supabase
-        .from("profiles")
-        .select("id, display_name, avatar_url, email")
-        .in("id", userIds);
+        .from("public_profiles" as any)
+        .select("id, display_name, avatar_url")
+        .in("id", userIds) as unknown as { data: PublicProfile[] | null };
 
       const profileMap = new Map(profiles?.map((p) => [p.id, p]));
       const groupMap = new Map(adminGroups!.map((g) => [g.id, g.name]));
@@ -80,42 +81,6 @@ const Notifications = () => {
     enabled: !!user,
   });
 
-  // Realtime: listen for new pending join requests
-  useEffect(() => {
-    if (!adminGroups?.length) return;
-    const channel = supabase
-      .channel("pending-requests-realtime")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "group_members" },
-        (payload) => {
-          const row = payload.new as any;
-          if (row && adminGroups.some((g) => g.id === row.group_id)) {
-            queryClient.invalidateQueries({ queryKey: ["pending-requests"] });
-          }
-        }
-      )
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [adminGroups, queryClient]);
-
-  // Realtime: listen for new notifications for this user
-  useEffect(() => {
-    if (!user) return;
-    const channel = supabase
-      .channel("user-notifications-realtime")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ["user-notifications", user.id] });
-          queryClient.invalidateQueries({ queryKey: ["unread-notifications", user.id] });
-        }
-      )
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [user, queryClient]);
-
   // Mark notifications as read
   const markRead = useMutation({
     mutationFn: async (ids: string[]) => {
@@ -143,30 +108,11 @@ const Notifications = () => {
       groupId: string;
       status: string;
     }) => {
-      const { error } = await supabase
-        .from("group_members")
-        .update({ status: status as any })
-        .eq("id", memberId);
+      const { error } = await supabase.rpc("update_group_member_status" as any, {
+        _member_id: memberId,
+        _status: status,
+      });
       if (error) throw error;
-
-      const groupName =
-        adminGroups?.find((g) => g.id === groupId)?.name || "el grupo";
-
-      if (status === "approved") {
-        await supabase.from("notifications").insert({
-          user_id: userId,
-          type: "join_approved" as any,
-          message: `Tu solicitud para unirte a ${groupName} fue aprobada. ¡Ya puedes participar!`,
-          metadata: { group_id: groupId },
-        });
-      } else if (status === "rejected") {
-        await supabase.from("notifications").insert({
-          user_id: userId,
-          type: "join_rejected" as any,
-          message: `Tu solicitud para unirte a ${groupName} no fue aprobada.`,
-          metadata: { group_id: groupId },
-        });
-      }
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["pending-requests"] });

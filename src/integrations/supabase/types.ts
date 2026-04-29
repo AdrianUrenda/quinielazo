@@ -163,13 +163,6 @@ export type Database = {
             referencedRelation: "groups"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "group_members_group_id_fkey"
-            columns: ["group_id"]
-            isOneToOne: false
-            referencedRelation: "groups_discovery"
-            referencedColumns: ["id"]
-          },
         ]
       }
       groups: {
@@ -210,6 +203,39 @@ export type Database = {
           name?: string
           prize_description?: string | null
           stripe_payment_id?: string | null
+          tier?: Database["public"]["Enums"]["group_tier"]
+        }
+        Relationships: []
+      }
+      groups_discovery: {
+        Row: {
+          admin_user_id: string
+          created_at: string
+          description: string | null
+          has_access_code: boolean
+          id: string
+          max_members: number
+          name: string
+          tier: Database["public"]["Enums"]["group_tier"]
+        }
+        Insert: {
+          admin_user_id: string
+          created_at: string
+          description?: string | null
+          has_access_code?: boolean
+          id: string
+          max_members: number
+          name: string
+          tier: Database["public"]["Enums"]["group_tier"]
+        }
+        Update: {
+          admin_user_id?: string
+          created_at?: string
+          description?: string | null
+          has_access_code?: boolean
+          id?: string
+          max_members?: number
+          name?: string
           tier?: Database["public"]["Enums"]["group_tier"]
         }
         Relationships: []
@@ -359,13 +385,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "predictions_group_id_fkey"
-            columns: ["group_id"]
-            isOneToOne: false
-            referencedRelation: "groups_discovery"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "predictions_match_id_fkey"
             columns: ["match_id"]
             isOneToOne: false
@@ -401,43 +420,54 @@ export type Database = {
         }
         Relationships: []
       }
-    }
-    Views: {
-      groups_discovery: {
+      public_profiles: {
         Row: {
-          admin_user_id: string | null
-          created_at: string | null
-          description: string | null
-          has_access_code: boolean | null
-          id: string | null
-          max_members: number | null
-          name: string | null
-          tier: Database["public"]["Enums"]["group_tier"] | null
+          avatar_url: string | null
+          display_name: string
+          id: string
+          updated_at: string
         }
         Insert: {
-          admin_user_id?: string | null
-          created_at?: string | null
-          description?: string | null
-          has_access_code?: never
-          id?: string | null
-          max_members?: number | null
-          name?: string | null
-          tier?: Database["public"]["Enums"]["group_tier"] | null
+          avatar_url?: string | null
+          display_name?: string
+          id: string
+          updated_at?: string
         }
         Update: {
-          admin_user_id?: string | null
-          created_at?: string | null
-          description?: string | null
-          has_access_code?: never
-          id?: string | null
-          max_members?: number | null
-          name?: string | null
-          tier?: Database["public"]["Enums"]["group_tier"] | null
+          avatar_url?: string | null
+          display_name?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
         }
         Relationships: []
       }
     }
+    Views: {
+      [_ in never]: never
+    }
     Functions: {
+      current_user_is_admin: { Args: never; Returns: boolean }
       delete_user_account: { Args: never; Returns: undefined }
       get_group_by_invite_code: {
         Args: { _invite_code: string }
@@ -451,6 +481,13 @@ export type Database = {
         }[]
       }
       get_group_member_count: { Args: { _group_id: string }; Returns: number }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       is_group_admin: {
         Args: { _group_id: string; _user_id: string }
         Returns: boolean
@@ -459,12 +496,24 @@ export type Database = {
         Args: { _group_id: string; _user_id: string }
         Returns: boolean
       }
+      request_group_membership: {
+        Args: { _access_code?: string; _group_id: string }
+        Returns: undefined
+      }
+      update_group_member_status: {
+        Args: {
+          _member_id: string
+          _status: Database["public"]["Enums"]["member_status"]
+        }
+        Returns: undefined
+      }
       validate_group_access_code: {
         Args: { _code: string; _group_id: string }
         Returns: boolean
       }
     }
     Enums: {
+      app_role: "admin" | "moderator" | "user"
       group_tier: "basico" | "familiar" | "grande"
       match_stage:
         | "group"
@@ -609,6 +658,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_role: ["admin", "moderator", "user"],
       group_tier: ["basico", "familiar", "grande"],
       match_stage: [
         "group",

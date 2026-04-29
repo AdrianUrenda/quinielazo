@@ -26,6 +26,8 @@ import { formatMexicoDateTime } from "@/lib/matchCalendar";
 
 const SUPABASE_PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID;
 
+type PublicProfile = { id: string; display_name: string; avatar_url: string | null };
+
 const roundMeta: Record<string, { label: string; order: number }> = {
   reclassification: { label: "Reclasificación", order: 0 },
   quarterfinal: { label: "Cuartos de Final", order: 1 },
@@ -55,10 +57,13 @@ const DemoAdmin = () => {
       const { data: dmembers } = await supabase.from("demo_group_members").select("user_id, joined_at");
       if (!dmembers?.length) return [];
       const userIds = dmembers.map((m: any) => m.user_id);
-      const { data: profiles } = await supabase.from("profiles").select("id, display_name, email").in("id", userIds);
+      const { data: profiles } = await supabase
+        .from("public_profiles" as any)
+        .select("id, display_name, avatar_url")
+        .in("id", userIds) as unknown as { data: PublicProfile[] | null };
       return dmembers.map((m: any) => {
         const profile = (profiles || []).find((p: any) => p.id === m.user_id);
-        return { ...m, displayName: profile?.display_name || "—", email: profile?.email || "" };
+        return { ...m, displayName: profile?.display_name || "—" };
       });
     },
     enabled: !!user,
@@ -74,6 +79,16 @@ const DemoAdmin = () => {
         .order("kickoff_utc", { ascending: true });
       return (data || []) as any[];
     },
+  });
+
+  const { data: isDemoAdmin, isLoading: adminLoading } = useQuery({
+    queryKey: ["demo-admin-role", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("current_user_is_admin" as any);
+      if (error) throw error;
+      return Boolean(data);
+    },
+    enabled: !!user,
   });
 
   const invokeSync = async (action: string, body?: any) => {
@@ -122,11 +137,25 @@ const DemoAdmin = () => {
     updateScore.mutate({ matchId, homeScore: parseInt(s.home), awayScore: parseInt(s.away) });
   };
 
-  if (authLoading) {
+  if (authLoading || adminLoading) {
     return <div className="min-h-screen bg-background flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
   }
 
   if (!user) { navigate("/login"); return null; }
+
+  if (!isDemoAdmin) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="container max-w-md pt-24 pb-16 text-center">
+          <h1 className="text-2xl font-display text-foreground tracking-wide mb-2">ACCESO RESTRINGIDO</h1>
+          <p className="text-sm text-muted-foreground font-body mb-6">Esta sección está disponible solo para administradores.</p>
+          <Button onClick={() => navigate("/demo")}>Volver al Demo</Button>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   const liguillaMatches = (matches || []).filter((m) => m.round_label || (m.jornada ?? 0) >= 900);
   const matchesByRound = liguillaMatches.reduce((acc: Record<string, any[]>, match: any) => {
@@ -249,7 +278,7 @@ const DemoAdmin = () => {
                   <div key={m.user_id} className="flex items-center justify-between py-2 border-b border-border last:border-0">
                     <div>
                       <p className="text-sm font-body font-semibold text-foreground">{m.displayName}</p>
-                      <p className="text-xs text-muted-foreground font-body">{m.email}</p>
+                      <p className="text-xs text-muted-foreground font-body">Participante demo</p>
                     </div>
                     <Badge variant="outline" className="text-[10px]">{new Date(m.joined_at).toLocaleDateString("es")}</Badge>
                   </div>

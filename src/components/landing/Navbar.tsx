@@ -2,14 +2,13 @@ import { Button } from "@/components/ui/button";
 import { Trophy, Bell, User } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useEffect, useState, useRef, useCallback } from "react";
 
 const Navbar = () => {
   const { user, loading } = useAuth();
-  const queryClient = useQueryClient();
 
   const [bellRinging, setBellRinging] = useState(false);
   const prevCountRef = useRef<number | null>(null);
@@ -18,24 +17,6 @@ const Navbar = () => {
     setBellRinging(true);
     setTimeout(() => setBellRinging(false), 800);
   }, []);
-
-  // Realtime: refresh unread count when notifications change
-  useEffect(() => {
-    if (!user) return;
-    const channel = supabase
-      .channel("navbar-notifications")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ["unread-notifications", user.id] });
-          triggerBellRing();
-          toast("🔔 Nueva notificación", { duration: 3000 });
-        }
-      )
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [user, queryClient, triggerBellRing]);
 
   const { data: unreadCount } = useQuery({
     queryKey: ["unread-notifications", user?.id],
@@ -50,6 +31,15 @@ const Navbar = () => {
     enabled: !!user,
     refetchInterval: 30000,
   });
+
+  useEffect(() => {
+    if (!user || unreadCount === undefined) return;
+    if (prevCountRef.current !== null && unreadCount > prevCountRef.current) {
+      triggerBellRing();
+      toast("🔔 Nueva notificación", { duration: 3000 });
+    }
+    prevCountRef.current = unreadCount;
+  }, [unreadCount, user, triggerBellRing]);
 
 
 
