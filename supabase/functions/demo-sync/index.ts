@@ -60,6 +60,7 @@ const isLiguillaRound = (round?: string | null) => {
   const lower = (round ?? "").toLowerCase();
   return (
     lower.includes("liguilla") ||
+    lower.includes("play-in") ||
     lower.includes("quarter") ||
     lower.includes("cuarto") ||
     lower.includes("semi") ||
@@ -67,12 +68,6 @@ const isLiguillaRound = (round?: string | null) => {
     lower.includes("reclasificacion") ||
     lower.includes("reclasificación")
   );
-};
-
-const isPendingFixture = (fixture: any) => {
-  const kickoff = fixture?.fixture?.date ? new Date(fixture.fixture.date) : null;
-  const status = normalizeStatus(fixture?.fixture?.status?.short ?? "NS");
-  return status === "upcoming" && !!kickoff && kickoff.getTime() > Date.now();
 };
 
 const getExplicitLegLabel = (round: string | null | undefined) => {
@@ -96,7 +91,7 @@ const assignLegLabels = (fixtures: any[]) => {
   }
 
   const labels = new Map<number, string>();
-  for (const [roundLabel, roundFixtures] of byRound) {
+  for (const roundFixtures of byRound.values()) {
     const sortedRound = [...roundFixtures].sort((a, b) => new Date(a.fixture.date).getTime() - new Date(b.fixture.date).getTime());
     const byTie = new Map<string, any[]>();
 
