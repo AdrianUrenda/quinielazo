@@ -216,55 +216,73 @@ export type Database = {
       }
       matches: {
         Row: {
+          api_fixture_id: number | null
           away_flag: string | null
           away_score: number | null
           away_team: string
+          away_team_logo: string | null
           city: string
           created_at: string
           group_label: string | null
           home_flag: string | null
           home_score: number | null
           home_team: string
+          home_team_logo: string | null
           id: string
           kickoff_utc: string
+          last_synced_at: string | null
           match_number: number
+          round_label: string | null
           stadium: string
           stage: Database["public"]["Enums"]["match_stage"]
           status: Database["public"]["Enums"]["match_status"]
+          status_detail: string | null
         }
         Insert: {
+          api_fixture_id?: number | null
           away_flag?: string | null
           away_score?: number | null
           away_team: string
+          away_team_logo?: string | null
           city?: string
           created_at?: string
           group_label?: string | null
           home_flag?: string | null
           home_score?: number | null
           home_team: string
+          home_team_logo?: string | null
           id?: string
           kickoff_utc: string
+          last_synced_at?: string | null
           match_number: number
+          round_label?: string | null
           stadium?: string
           stage?: Database["public"]["Enums"]["match_stage"]
           status?: Database["public"]["Enums"]["match_status"]
+          status_detail?: string | null
         }
         Update: {
+          api_fixture_id?: number | null
           away_flag?: string | null
           away_score?: number | null
           away_team?: string
+          away_team_logo?: string | null
           city?: string
           created_at?: string
           group_label?: string | null
           home_flag?: string | null
           home_score?: number | null
           home_team?: string
+          home_team_logo?: string | null
           id?: string
           kickoff_utc?: string
+          last_synced_at?: string | null
           match_number?: number
+          round_label?: string | null
           stadium?: string
           stage?: Database["public"]["Enums"]["match_stage"]
           status?: Database["public"]["Enums"]["match_status"]
+          status_detail?: string | null
         }
         Relationships: []
       }
