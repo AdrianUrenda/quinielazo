@@ -75,6 +75,15 @@ const scorePredictionsForMatch = async (supabase: any, matchId: string, homeScor
   return scored;
 };
 
+const requireAuthenticatedUser = async (authHeader: string | null) => {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
+  if (!authHeader || !supabaseUrl || !anonKey) return false;
+  const authClient = createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: authHeader } } });
+  const { data, error } = await authClient.auth.getUser();
+  return !error && Boolean(data.user);
+};
+
 const syncMatches = async (fixtures: any[]) => {
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -172,7 +181,8 @@ Deno.serve(async (req) => {
 
     if (action === "sync-matches") {
       const authHeader = req.headers.get("Authorization");
-      if (!authHeader) {
+      const isAuthenticated = await requireAuthenticatedUser(authHeader);
+      if (!isAuthenticated) {
         return new Response(JSON.stringify({ error: "Unauthorized" }), {
           status: 401,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
