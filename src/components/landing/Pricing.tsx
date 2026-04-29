@@ -12,7 +12,7 @@ const sharedFeatures = [
 ];
 
 const tiers = [
-  { name: "Básico", price: "Gratis", members: "Hasta 10 miembros", popular: false, features: sharedFeatures },
+  { name: "Básico", price: "Gratis", members: "Hasta 8 miembros", popular: false, features: sharedFeatures },
   { name: "Familiar", price: "$49", members: "Hasta 20 miembros", popular: true, features: sharedFeatures },
   { name: "Grande", price: "$99", members: "21 miembros o más", popular: false, features: sharedFeatures },
 ];

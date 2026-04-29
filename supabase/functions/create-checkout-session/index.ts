@@ -17,7 +17,7 @@ const tierLabels: Record<string, string> = {
 };
 
 const maxMembersMap: Record<string, number> = {
-  basico: 10,
+  basico: 8,
   familiar: 20,
   grande: 99999,
 };

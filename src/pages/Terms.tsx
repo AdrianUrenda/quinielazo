@@ -31,7 +31,7 @@ const Terms = () => {
             La creación de grupos privados en la Plataforma requiere el pago de una tarifa única, no recurrente, correspondiente al tamaño del grupo seleccionado:
           </p>
           <ul className="list-disc pl-6 mb-4 text-muted-foreground space-y-1">
-            <li>Básico (hasta 10 miembros): $49 MXN</li>
+            <li>Básico (hasta 8 miembros): gratis</li>
             <li>Familiar (hasta 20 miembros): $99 MXN</li>
             <li>Grande (21 miembros o más): $199 MXN</li>
           </ul>
