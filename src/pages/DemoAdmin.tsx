@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,22 +19,34 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Users, Trash2, Loader2, Check, ChevronDown, ChevronUp } from "lucide-react";
+import { ArrowLeft, Users, Trash2, Loader2, Check, ChevronDown, ChevronUp, Trophy } from "lucide-react";
 import Navbar from "@/components/landing/Navbar";
 import Footer from "@/components/landing/Footer";
-
-const isPendingClausuraFixture = (match: any) =>
-  (match.round_label || match.jornada >= 900) &&
-  match.status === "upcoming" &&
-  new Date(match.kickoff_utc).getTime() > Date.now();
+import { formatMexicoDateTime } from "@/lib/matchCalendar";
 
 const SUPABASE_PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+
+const roundMeta: Record<string, { label: string; order: number }> = {
+  play_in: { label: "Play-In", order: 0 },
+  quarterfinal: { label: "Cuartos de Final", order: 1 },
+  semifinal: { label: "Semifinales", order: 2 },
+  final: { label: "Final", order: 3 },
+};
+
+const getDemoStage = (match: any) => {
+  const value = (match.round_label || "").toLowerCase();
+  if (value.includes("play-in") || value.includes("reclas")) return "play_in";
+  if (value.includes("quarter") || value.includes("cuarto")) return "quarterfinal";
+  if (value.includes("semi")) return "semifinal";
+  if (value.includes("final")) return "final";
+  return "other";
+};
 
 const DemoAdmin = () => {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [expandedJornada, setExpandedJornada] = useState<number | null>(null);
+  const [expandedRound, setExpandedRound] = useState<string | null>(null);
   const [scores, setScores] = useState<Record<string, { home: string; away: string }>>({});
 
   const { data: members } = useQuery({
@@ -57,34 +70,31 @@ const DemoAdmin = () => {
       const { data } = await supabase
         .from("demo_matches")
         .select("*")
-        .order("jornada", { ascending: true })
+        .order("round_order", { ascending: true, nullsFirst: false })
         .order("kickoff_utc", { ascending: true });
-      return data || [];
+      return (data || []) as any[];
     },
   });
 
   const invokeSync = async (action: string, body?: any) => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) throw new Error("No session");
-    const resp = await fetch(
-      `https://${SUPABASE_PROJECT_ID}.supabase.co/functions/v1/demo-sync?action=${action}`,
-      {
-        method: "POST",
-        headers: { Authorization: `Bearer ${session.access_token}`, "Content-Type": "application/json" },
-        body: body ? JSON.stringify(body) : undefined,
-      }
-    );
+    const resp = await fetch(`https://${SUPABASE_PROJECT_ID}.supabase.co/functions/v1/demo-sync?action=${action}`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${session.access_token}`, "Content-Type": "application/json" },
+      body: body ? JSON.stringify(body) : undefined,
+    });
     const result = await resp.json();
     if (!resp.ok) throw new Error(result.error || "Error");
     return result;
   };
 
   const updateScore = useMutation({
-    mutationFn: (params: { matchId: string; homeScore: number; awayScore: number }) =>
-      invokeSync("update-score", params),
+    mutationFn: (params: { matchId: string; homeScore: number; awayScore: number }) => invokeSync("update-score", params),
     onSuccess: (data) => {
       toast.success(`Marcador registrado. ${data.predictionsScored} predicciones puntuadas.`);
       queryClient.invalidateQueries({ queryKey: ["demo-admin-matches"] });
+      queryClient.invalidateQueries({ queryKey: ["demo-matches"] });
       queryClient.invalidateQueries({ queryKey: ["demo-predictions"] });
       queryClient.invalidateQueries({ queryKey: ["demo-leaderboard"] });
     },
@@ -96,6 +106,7 @@ const DemoAdmin = () => {
     onSuccess: () => {
       toast.success("Demo reseteado completamente");
       queryClient.invalidateQueries({ queryKey: ["demo-admin-matches"] });
+      queryClient.invalidateQueries({ queryKey: ["demo-matches"] });
       queryClient.invalidateQueries({ queryKey: ["demo-predictions"] });
       queryClient.invalidateQueries({ queryKey: ["demo-leaderboard"] });
     },
@@ -108,11 +119,7 @@ const DemoAdmin = () => {
       toast.error("Ingresa ambos marcadores");
       return;
     }
-    updateScore.mutate({
-      matchId,
-      homeScore: parseInt(s.home),
-      awayScore: parseInt(s.away),
-    });
+    updateScore.mutate({ matchId, homeScore: parseInt(s.home), awayScore: parseInt(s.away) });
   };
 
   if (authLoading) {
@@ -121,17 +128,14 @@ const DemoAdmin = () => {
 
   if (!user) { navigate("/login"); return null; }
 
-  // Group matches by jornada
-  const pendingClausuraMatches = (matches || []).filter(isPendingClausuraFixture);
-
-  const matchesByJornada = pendingClausuraMatches.reduce((acc: Record<number, any[]>, m: any) => {
-    const j = m.jornada || 0;
-    if (!acc[j]) acc[j] = [];
-    acc[j].push(m);
+  const liguillaMatches = (matches || []).filter((m) => m.round_label || (m.jornada ?? 0) >= 900);
+  const matchesByRound = liguillaMatches.reduce((acc: Record<string, any[]>, match: any) => {
+    const stage = getDemoStage(match);
+    if (!acc[stage]) acc[stage] = [];
+    acc[stage].push(match);
     return acc;
   }, {});
-
-  const jornadas = Object.keys(matchesByJornada).map(Number).sort((a, b) => a - b);
+  const rounds = Object.keys(matchesByRound).sort((a, b) => (roundMeta[a]?.order ?? 9) - (roundMeta[b]?.order ?? 9));
 
   return (
     <div className="min-h-screen bg-background">
@@ -143,28 +147,21 @@ const DemoAdmin = () => {
           </Button>
 
           <h1 className="text-3xl md:text-4xl font-display text-foreground tracking-wide mb-2">ADMIN — GRUPO DEMO</h1>
-          <p className="text-sm text-muted-foreground font-body mb-8">Liga MX · Clausura 2026 · Liguilla</p>
+          <p className="text-sm text-muted-foreground font-body mb-8">Liga MX · Liguilla · Validación de resultados</p>
 
-          {/* Reset */}
-          <div className="card-elevated rounded-2xl p-6 mb-6 flex items-center justify-between">
+          <div className="card-elevated rounded-2xl p-6 mb-6 flex items-center justify-between gap-4">
             <div>
               <h2 className="font-display text-lg text-foreground tracking-wider">CONTROLES</h2>
-              <p className="text-xs text-muted-foreground font-body mt-1">
-                {pendingClausuraMatches.length} partidos pendientes · Clausura
-              </p>
+              <p className="text-xs text-muted-foreground font-body mt-1">{liguillaMatches.length} partidos de Liguilla · {rounds.length} rondas</p>
             </div>
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="destructive" size="sm">
-                  <Trash2 className="w-4 h-4 mr-2" /> Reset Demo
-                </Button>
+                <Button variant="destructive" size="sm"><Trash2 className="w-4 h-4 mr-2" /> Reset Demo</Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
                   <AlertDialogTitle>¿Resetear Grupo Demo?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Esto borrará todas las predicciones y restablecerá todos los marcadores. No se puede deshacer.
-                  </AlertDialogDescription>
+                  <AlertDialogDescription>Esto borrará todas las predicciones y restablecerá todos los marcadores. No se puede deshacer.</AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancelar</AlertDialogCancel>
@@ -174,103 +171,61 @@ const DemoAdmin = () => {
             </AlertDialog>
           </div>
 
-          {/* Matches by Jornada */}
           <div className="space-y-4 mb-8">
-            <h2 className="font-display text-xl text-foreground tracking-wider">PARTIDOS POR JORNADA</h2>
+            <h2 className="font-display text-xl text-foreground tracking-wider">PARTIDOS POR RONDA</h2>
 
             {matchesLoading ? (
               <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
             ) : (
-              jornadas.map((jornada) => {
-                const jornadaMatches = matchesByJornada[jornada];
-                const finishedCount = jornadaMatches.filter((m: any) => m.status === "finished").length;
-                const isExpanded = expandedJornada === jornada;
+              rounds.map((round) => {
+                const roundMatches = matchesByRound[round];
+                const finishedCount = roundMatches.filter((m: any) => m.status === "finished").length;
+                const isExpanded = expandedRound === round;
 
                 return (
-                  <div key={jornada} className="card-elevated rounded-2xl overflow-hidden">
-                    <button
-                      onClick={() => setExpandedJornada(isExpanded ? null : jornada)}
-                      className="w-full flex items-center justify-between p-4 hover:bg-muted/30 transition-colors"
-                    >
+                  <div key={round} className="card-elevated rounded-2xl overflow-hidden">
+                    <button onClick={() => setExpandedRound(isExpanded ? null : round)} className="w-full flex items-center justify-between p-4 hover:bg-muted/30 transition-colors">
                       <div className="flex items-center gap-3">
-                        <span className="font-display text-foreground tracking-wider">JORNADA {jornada}</span>
-                        <Badge variant="outline" className="text-[10px]">
-                          {finishedCount}/{jornadaMatches.length} finalizados
-                        </Badge>
+                        <Trophy className="w-4 h-4 text-gold" />
+                        <span className="font-display text-foreground tracking-wider">{roundMeta[round]?.label || "Liguilla"}</span>
+                        <Badge variant="outline" className="text-[10px]">{finishedCount}/{roundMatches.length} finalizados</Badge>
                       </div>
                       {isExpanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
                     </button>
 
                     {isExpanded && (
                       <div className="border-t border-border">
-                        {jornadaMatches.map((match: any) => {
+                        {roundMatches.map((match: any) => {
                           const isFinished = match.status === "finished";
                           const currentScore = scores[match.id] || { home: "", away: "" };
-                          const kickoff = new Date(match.kickoff_utc);
 
                           return (
                             <div key={match.id} className="p-4 border-b border-border last:border-0">
-                              <div className="flex items-center justify-between mb-2">
-                                <p className="text-[10px] text-muted-foreground font-body">
-                                  {kickoff.toLocaleDateString("es-MX", { weekday: "short", day: "numeric", month: "short" })} · {kickoff.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" })}
-                                </p>
-                                <p className="text-[10px] text-muted-foreground font-body">{match.stadium}, {match.city}</p>
+                              <div className="flex items-center justify-between gap-3 mb-2">
+                                <p className="text-[10px] text-muted-foreground font-body">{match.leg_label ? `${match.leg_label} · ` : ""}{formatMexicoDateTime(match.kickoff_utc)}</p>
+                                <Badge variant={isFinished ? "default" : "outline"} className="text-[10px]">{isFinished ? "Finalizado" : "Pendiente"}</Badge>
                               </div>
 
                               <div className="flex items-center gap-3">
-                                <div className="flex-1 text-right">
-                                  <span className="text-sm font-body font-semibold text-foreground">{match.home_team}</span>
-                                </div>
+                                <div className="flex-1 text-right min-w-0"><span className="text-sm font-body font-semibold text-foreground truncate block">{match.home_team}</span></div>
 
                                 {isFinished ? (
                                   <div className="flex items-center gap-2 shrink-0">
-                                    <Badge className="bg-primary/10 text-primary font-display text-sm px-3">
-                                      {match.home_score} - {match.away_score}
-                                    </Badge>
-                                    <Check className="w-4 h-4 text-green-500" />
+                                    <Badge className="bg-primary/10 text-primary font-display text-sm px-3">{match.home_score} - {match.away_score}</Badge>
+                                    <Check className="w-4 h-4 text-primary" />
                                   </div>
                                 ) : (
                                   <div className="flex items-center gap-1 shrink-0">
-                                    <Input
-                                      type="number"
-                                      min="0"
-                                      max="20"
-                                      className="w-12 h-8 text-center text-sm p-0"
-                                      placeholder="-"
-                                      value={currentScore.home}
-                                      onChange={(e) => setScores(prev => ({
-                                        ...prev,
-                                        [match.id]: { ...prev[match.id], home: e.target.value, away: prev[match.id]?.away || "" }
-                                      }))}
-                                    />
+                                    <Input type="number" min="0" max="20" className="w-12 h-8 text-center text-sm p-0" placeholder="-" value={currentScore.home} onChange={(e) => setScores((prev) => ({ ...prev, [match.id]: { ...prev[match.id], home: e.target.value, away: prev[match.id]?.away || "" } }))} />
                                     <span className="text-muted-foreground text-xs">-</span>
-                                    <Input
-                                      type="number"
-                                      min="0"
-                                      max="20"
-                                      className="w-12 h-8 text-center text-sm p-0"
-                                      placeholder="-"
-                                      value={currentScore.away}
-                                      onChange={(e) => setScores(prev => ({
-                                        ...prev,
-                                        [match.id]: { home: prev[match.id]?.home || "", away: e.target.value }
-                                      }))}
-                                    />
+                                    <Input type="number" min="0" max="20" className="w-12 h-8 text-center text-sm p-0" placeholder="-" value={currentScore.away} onChange={(e) => setScores((prev) => ({ ...prev, [match.id]: { home: prev[match.id]?.home || "", away: e.target.value } }))} />
                                   </div>
                                 )}
 
-                                <div className="flex-1">
-                                  <span className="text-sm font-body font-semibold text-foreground">{match.away_team}</span>
-                                </div>
+                                <div className="flex-1 min-w-0"><span className="text-sm font-body font-semibold text-foreground truncate block">{match.away_team}</span></div>
 
                                 {!isFinished && (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="h-8 px-2 ml-2 shrink-0"
-                                    disabled={updateScore.isPending}
-                                    onClick={() => handleSubmitScore(match.id)}
-                                  >
+                                  <Button size="sm" variant="outline" className="h-8 px-2 ml-2 shrink-0" disabled={updateScore.isPending} onClick={() => handleSubmitScore(match.id)}>
                                     <Check className="w-3 h-3" />
                                   </Button>
                                 )}
@@ -286,11 +241,8 @@ const DemoAdmin = () => {
             )}
           </div>
 
-          {/* Members */}
           <div className="card-elevated rounded-2xl p-6">
-            <h2 className="font-display text-xl text-foreground tracking-wider mb-4 flex items-center gap-2">
-              <Users className="w-5 h-5" /> MIEMBROS ({members?.length || 0})
-            </h2>
+            <h2 className="font-display text-xl text-foreground tracking-wider mb-4 flex items-center gap-2"><Users className="w-5 h-5" /> MIEMBROS ({members?.length || 0})</h2>
             {members?.length ? (
               <div className="space-y-2">
                 {members.map((m: any) => (
@@ -299,9 +251,7 @@ const DemoAdmin = () => {
                       <p className="text-sm font-body font-semibold text-foreground">{m.displayName}</p>
                       <p className="text-xs text-muted-foreground font-body">{m.email}</p>
                     </div>
-                    <Badge variant="outline" className="text-[10px]">
-                      {new Date(m.joined_at).toLocaleDateString("es")}
-                    </Badge>
+                    <Badge variant="outline" className="text-[10px]">{new Date(m.joined_at).toLocaleDateString("es")}</Badge>
                   </div>
                 ))}
               </div>

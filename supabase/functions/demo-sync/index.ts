@@ -9,7 +9,7 @@ const corsHeaders = {
 const API_BASE_URL = "https://v3.football.api-sports.io";
 const LIGA_MX_LEAGUE_ID = "262";
 const SEASONS = ["2026", "2025"];
-const ROUND_PROBES = ["Liguilla", "Quarter-finals", "Semi-finals", "Final", "Reclasificacion"];
+const ROUND_PROBES = ["Liguilla", "Play-In", "Quarter-finals", "Semi-finals", "Final", "Reclasificacion"];
 const FINISHED = new Set(["FT", "AET", "PEN"]);
 const LIVE = new Set(["1H", "HT", "2H", "ET", "BT", "P", "SUSP", "INT", "LIVE"]);
 const TBD_NAMES = new Set(["", "tbd", "to be defined", "por definir", "undefined", "null"]);
@@ -40,14 +40,17 @@ const normalizeRound = (round?: string | null) => {
   const value = round ?? "";
   const lower = value.toLowerCase();
 
+  if (lower.includes("play-in") || lower.includes("reclasificacion") || lower.includes("reclasificación")) {
+    return { label: "Play-In", order: 0 };
+  }
   if (lower.includes("quarter") || lower.includes("cuarto")) {
-    return { label: value.includes("-") ? value : "Cuartos de Final", order: 1 };
+    return { label: "Cuartos de Final", order: 1 };
   }
   if (lower.includes("semi")) {
-    return { label: value.includes("-") ? value : "Semifinal", order: 2 };
+    return { label: "Semifinales", order: 2 };
   }
   if (lower.includes("final") && !lower.includes("quarter") && !lower.includes("semi")) {
-    return { label: value.includes("-") ? value : "Final", order: 3 };
+    return { label: "Final", order: 3 };
   }
 
   return { label: value || "Liguilla", order: 9 };
@@ -57,6 +60,7 @@ const isLiguillaRound = (round?: string | null) => {
   const lower = (round ?? "").toLowerCase();
   return (
     lower.includes("liguilla") ||
+    lower.includes("play-in") ||
     lower.includes("quarter") ||
     lower.includes("cuarto") ||
     lower.includes("semi") ||
@@ -66,17 +70,53 @@ const isLiguillaRound = (round?: string | null) => {
   );
 };
 
-const isPendingFixture = (fixture: any) => {
-  const kickoff = fixture?.fixture?.date ? new Date(fixture.fixture.date) : null;
-  const status = normalizeStatus(fixture?.fixture?.status?.short ?? "NS");
-  return status === "upcoming" && !!kickoff && kickoff.getTime() > Date.now();
+const getExplicitLegLabel = (round: string | null | undefined) => {
+  const lower = (round ?? "").toLowerCase();
+  if (lower.includes("1st") || lower.includes("first") || lower.includes("ida")) return "Ida";
+  if (lower.includes("2nd") || lower.includes("second") || lower.includes("vuelta")) return "Vuelta";
+  return null;
 };
 
-const getLegLabel = (round: string | null | undefined, indexInRound: number) => {
-  const lower = (round ?? "").toLowerCase();
-  if (lower.includes("1st") || lower.includes("ida")) return "Ida";
-  if (lower.includes("2nd") || lower.includes("vuelta")) return "Vuelta";
-  return indexInRound % 2 === 0 ? "Ida" : "Vuelta";
+const getTieKey = (fixture: any) => {
+  const home = normalizeTeam(fixture?.teams?.home).name.toLowerCase();
+  const away = normalizeTeam(fixture?.teams?.away).name.toLowerCase();
+  return [home, away].sort().join("|");
+};
+
+const assignLegLabels = (fixtures: any[]) => {
+  const byRound = new Map<string, any[]>();
+  for (const fixture of fixtures) {
+    const { label } = normalizeRound(fixture?.league?.round);
+    byRound.set(label, [...(byRound.get(label) ?? []), fixture]);
+  }
+
+  const labels = new Map<number, string>();
+  for (const roundFixtures of byRound.values()) {
+    const sortedRound = [...roundFixtures].sort((a, b) => new Date(a.fixture.date).getTime() - new Date(b.fixture.date).getTime());
+    const byTie = new Map<string, any[]>();
+
+    for (const fixture of sortedRound) {
+      const explicit = getExplicitLegLabel(fixture?.league?.round);
+      if (explicit) labels.set(fixture.fixture.id, explicit);
+      const key = getTieKey(fixture);
+      byTie.set(key, [...(byTie.get(key) ?? []), fixture]);
+    }
+
+    for (const tieFixtures of byTie.values()) {
+      if (tieFixtures.length !== 2) continue;
+      [...tieFixtures]
+        .sort((a, b) => new Date(a.fixture.date).getTime() - new Date(b.fixture.date).getTime())
+        .forEach((fixture, index) => labels.set(fixture.fixture.id, index === 0 ? "Ida" : "Vuelta"));
+    }
+
+    sortedRound.forEach((fixture, index) => {
+      if (!labels.has(fixture.fixture.id)) {
+        labels.set(fixture.fixture.id, index < Math.ceil(sortedRound.length / 2) ? "Ida" : "Vuelta");
+      }
+    });
+  }
+
+  return labels;
 };
 
 const fetchFixtures = async (apiKey: string, season: string, round?: string) => {
@@ -168,7 +208,7 @@ Deno.serve(async (req) => {
           collected.push(...all.filter((fixture: any) => isLiguillaRound(fixture?.league?.round)));
         }
         fixtures = dedupeFixtures(collected).filter(
-          (fixture) => isLiguillaRound(fixture?.league?.round) && isPendingFixture(fixture)
+          (fixture) => isLiguillaRound(fixture?.league?.round)
         );
         if (fixtures.length) {
           selectedSeason = season;
@@ -176,13 +216,10 @@ Deno.serve(async (req) => {
         }
       }
 
-      const roundCounters = new Map<string, number>();
+      const legLabels = assignLegLabels(fixtures);
       const rows = fixtures.map((fixture: any) => {
         const round = fixture?.league?.round ?? "Liguilla";
         const { label, order } = normalizeRound(round);
-        const key = label;
-        const index = roundCounters.get(key) ?? 0;
-        roundCounters.set(key, index + 1);
         const home = normalizeTeam(fixture?.teams?.home);
         const away = normalizeTeam(fixture?.teams?.away);
         const shortStatus = fixture?.fixture?.status?.short ?? "NS";
@@ -203,33 +240,11 @@ Deno.serve(async (req) => {
           away_team_logo: away.logo,
           round_label: label,
           round_order: order,
-          leg_label: getLegLabel(round, index),
+          leg_label: legLabels.get(fixture.fixture.id) ?? null,
           status_detail: shortStatus,
           last_synced_at: new Date().toISOString(),
         };
       });
-
-      const staleQuery = supabase
-        .from("demo_matches")
-        .select("id")
-        .gte("jornada", 900)
-        .or(`status.neq.upcoming,kickoff_utc.lt.${new Date().toISOString()}`);
-      const { data: staleMatches, error: staleError } = await staleQuery;
-      if (staleError) throw staleError;
-      const staleIds = (staleMatches || []).map((match: any) => match.id);
-      if (staleIds.length) {
-        const { error: deletePredictionsError } = await supabase
-          .from("demo_predictions")
-          .delete()
-          .in("demo_match_id", staleIds);
-        if (deletePredictionsError) throw deletePredictionsError;
-
-        const { error: deleteMatchesError } = await supabase
-          .from("demo_matches")
-          .delete()
-          .in("id", staleIds);
-        if (deleteMatchesError) throw deleteMatchesError;
-      }
 
       if (rows.length) {
         const fixtureIds = rows.map((row) => row.api_fixture_id);
