@@ -209,7 +209,6 @@ export type Database = {
       }
       groups_discovery: {
         Row: {
-          admin_user_id: string
           created_at: string
           description: string | null
           has_access_code: boolean
@@ -219,7 +218,6 @@ export type Database = {
           tier: Database["public"]["Enums"]["group_tier"]
         }
         Insert: {
-          admin_user_id: string
           created_at: string
           description?: string | null
           has_access_code?: boolean
@@ -229,7 +227,6 @@ export type Database = {
           tier: Database["public"]["Enums"]["group_tier"]
         }
         Update: {
-          admin_user_id?: string
           created_at?: string
           description?: string | null
           has_access_code?: boolean
@@ -488,6 +485,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_demo_group_member: { Args: { _user_id: string }; Returns: boolean }
       is_group_admin: {
         Args: { _group_id: string; _user_id: string }
         Returns: boolean
