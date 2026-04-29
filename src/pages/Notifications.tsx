@@ -10,6 +10,8 @@ import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { Navigate, useNavigate } from "react-router-dom";
 
+type PublicProfile = { id: string; display_name: string; avatar_url: string | null };
+
 const Notifications = () => {
   const { user, loading: authLoading } = useAuth();
   const queryClient = useQueryClient();
@@ -50,7 +52,7 @@ const Notifications = () => {
       const { data: profiles } = await supabase
         .from("public_profiles" as any)
         .select("id, display_name, avatar_url")
-        .in("id", userIds);
+        .in("id", userIds) as unknown as { data: PublicProfile[] | null };
 
       const profileMap = new Map(profiles?.map((p) => [p.id, p]));
       const groupMap = new Map(adminGroups!.map((g) => [g.id, g.name]));
