@@ -439,6 +439,17 @@ export type Database = {
     }
     Functions: {
       delete_user_account: { Args: never; Returns: undefined }
+      get_group_by_invite_code: {
+        Args: { _invite_code: string }
+        Returns: {
+          description: string
+          has_access_code: boolean
+          id: string
+          max_members: number
+          name: string
+          tier: Database["public"]["Enums"]["group_tier"]
+        }[]
+      }
       get_group_member_count: { Args: { _group_id: string }; Returns: number }
       is_group_admin: {
         Args: { _group_id: string; _user_id: string }
