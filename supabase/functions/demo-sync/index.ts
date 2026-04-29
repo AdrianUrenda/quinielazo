@@ -8,11 +8,12 @@ const corsHeaders = {
 
 const API_BASE_URL = "https://v3.football.api-sports.io";
 const LIGA_MX_LEAGUE_ID = "262";
-const SEASONS = ["2026", "2025"];
-const ROUND_PROBES = ["Liguilla", "Play-In", "Quarter-finals", "Semi-finals", "Final", "Reclasificacion"];
+const CLAUSURA_SEASON = "2025";
+const CLAUSURA_MIN_DATE = new Date("2026-01-01T00:00:00.000Z");
 const FINISHED = new Set(["FT", "AET", "PEN"]);
 const LIVE = new Set(["1H", "HT", "2H", "ET", "BT", "P", "SUSP", "INT", "LIVE"]);
 const TBD_NAMES = new Set(["", "tbd", "to be defined", "por definir", "undefined", "null"]);
+const EXCLUDED_ROUND_TERMS = ["play-in", "play in", "regular season", "apertura", "group stage"];
 
 const isApiError = (payload: { errors?: unknown }) => {
   if (!payload?.errors) return false;
@@ -40,8 +41,8 @@ const normalizeRound = (round?: string | null) => {
   const value = round ?? "";
   const lower = value.toLowerCase();
 
-  if (lower.includes("play-in") || lower.includes("reclasificacion") || lower.includes("reclasificación")) {
-    return { label: "Play-In", order: 0 };
+  if (lower.includes("reclasificacion") || lower.includes("reclasificación") || lower.includes("relegation round")) {
+    return { label: "Reclasificación", order: 0 };
   }
   if (lower.includes("quarter") || lower.includes("cuarto")) {
     return { label: "Cuartos de Final", order: 1 };
@@ -58,9 +59,10 @@ const normalizeRound = (round?: string | null) => {
 
 const isLiguillaRound = (round?: string | null) => {
   const lower = (round ?? "").toLowerCase();
+  if (EXCLUDED_ROUND_TERMS.some((term) => lower.includes(term))) return false;
   return (
     lower.includes("liguilla") ||
-    lower.includes("play-in") ||
+    lower.includes("relegation round") ||
     lower.includes("quarter") ||
     lower.includes("cuarto") ||
     lower.includes("semi") ||
@@ -69,6 +71,10 @@ const isLiguillaRound = (round?: string | null) => {
     lower.includes("reclasificación")
   );
 };
+
+const isClausuraFixture = (fixture: any) => new Date(fixture?.fixture?.date ?? 0).getTime() >= CLAUSURA_MIN_DATE.getTime();
+
+const isClausuraLiguillaFixture = (fixture: any) => isClausuraFixture(fixture) && isLiguillaRound(fixture?.league?.round);
 
 const getExplicitLegLabel = (round: string | null | undefined) => {
   const lower = (round ?? "").toLowerCase();
@@ -129,6 +135,17 @@ const fetchFixtures = async (apiKey: string, season: string, round?: string) => 
   if (!response.ok) throw new Error(`API-Football ${response.status}: ${JSON.stringify(payload)}`);
   if (isApiError(payload)) throw new Error(`API-Football errors: ${JSON.stringify(payload.errors)}`);
   return payload.response ?? [];
+};
+
+const fetchRounds = async (apiKey: string, season: string) => {
+  const params = new URLSearchParams({ league: LIGA_MX_LEAGUE_ID, season });
+  const response = await fetch(`${API_BASE_URL}/fixtures/rounds?${params.toString()}`, {
+    headers: { "x-apisports-key": apiKey },
+  });
+  const payload = await response.json();
+  if (!response.ok) throw new Error(`API-Football ${response.status}: ${JSON.stringify(payload)}`);
+  if (isApiError(payload)) throw new Error(`API-Football errors: ${JSON.stringify(payload.errors)}`);
+  return (payload.response ?? []).filter((round: string) => isLiguillaRound(round));
 };
 
 const dedupeFixtures = (fixtures: any[]) => {
@@ -193,28 +210,17 @@ Deno.serve(async (req) => {
       const apiKey = Deno.env.get("API_FOOTBALL_KEY");
       if (!apiKey) throw new Error("API_FOOTBALL_KEY is not configured");
 
-      let selectedSeason = SEASONS[0];
       let fixtures: any[] = [];
 
-      for (const season of SEASONS) {
-        const collected: any[] = [];
-        const liguilla = await fetchFixtures(apiKey, season, "Liguilla");
-        collected.push(...liguilla);
-        for (const round of ROUND_PROBES.filter((r) => r !== "Liguilla")) {
-          collected.push(...await fetchFixtures(apiKey, season, round));
-        }
-        if (!collected.length) {
-          const all = await fetchFixtures(apiKey, season);
-          collected.push(...all.filter((fixture: any) => isLiguillaRound(fixture?.league?.round)));
-        }
-        fixtures = dedupeFixtures(collected).filter(
-          (fixture) => isLiguillaRound(fixture?.league?.round)
-        );
-        if (fixtures.length) {
-          selectedSeason = season;
-          break;
-        }
+      const rounds = await fetchRounds(apiKey, CLAUSURA_SEASON);
+      const collected: any[] = [];
+      for (const round of rounds) {
+        collected.push(...await fetchFixtures(apiKey, CLAUSURA_SEASON, round));
       }
+      if (!collected.length) {
+        collected.push(...await fetchFixtures(apiKey, CLAUSURA_SEASON));
+      }
+      fixtures = dedupeFixtures(collected).filter(isClausuraLiguillaFixture);
 
       const legLabels = assignLegLabels(fixtures);
       const rows = fixtures.map((fixture: any) => {
@@ -232,8 +238,8 @@ Deno.serve(async (req) => {
           stadium: fixture.fixture.venue?.name ?? "",
           city: fixture.fixture.venue?.city ?? "",
           status,
-          home_score: status === "finished" ? fixture.goals?.home ?? null : null,
-          away_score: status === "finished" ? fixture.goals?.away ?? null : null,
+          home_score: status === "finished" && isClausuraFixture(fixture) ? fixture.goals?.home ?? null : null,
+          away_score: status === "finished" && isClausuraFixture(fixture) ? fixture.goals?.away ?? null : null,
           home_team: home.name || "Por definir",
           away_team: away.name || "Por definir",
           home_team_logo: home.logo,
@@ -280,7 +286,8 @@ Deno.serve(async (req) => {
       return new Response(
         JSON.stringify({
           message: "Liguilla synced",
-          season: selectedSeason,
+          season: CLAUSURA_SEASON,
+          roundsLoaded: rounds,
           fixturesSynced: rows.length,
           predictionsScored,
           updatedAt: new Date().toISOString(),
