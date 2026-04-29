@@ -6,6 +6,8 @@ import { toast } from "sonner";
 import { CheckCircle, XCircle, UserX, Clock, ShieldCheck, Eye } from "lucide-react";
 import { motion } from "framer-motion";
 
+type PublicProfile = { id: string; display_name: string; avatar_url: string | null };
+
 interface Props {
   groupId: string;
   isAdmin: boolean;
@@ -36,7 +38,7 @@ const MembersTab = ({ groupId, isAdmin, onViewPredictions }: Props) => {
       const { data: profiles } = await supabase
         .from("public_profiles" as any)
         .select("id, display_name, avatar_url")
-        .in("id", userIds);
+        .in("id", userIds) as unknown as { data: PublicProfile[] | null };
 
       const profileMap = new Map(profiles?.map((p) => [p.id, p]));
       return data.map((m) => ({ ...m, profile: profileMap.get(m.user_id) }));
@@ -86,7 +88,7 @@ const MembersTab = ({ groupId, isAdmin, onViewPredictions }: Props) => {
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-body font-semibold text-foreground truncate">{displayName}</p>
-          <p className="text-xs text-muted-foreground font-body truncate">{m.profile?.email}</p>
+          <p className="text-xs text-muted-foreground font-body truncate">Participante</p>
         </div>
         <Badge variant={sc.variant} className="text-[10px] shrink-0">{sc.label}</Badge>
         {m.status === "approved" && (
