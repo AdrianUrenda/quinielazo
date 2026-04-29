@@ -48,8 +48,8 @@ const Notifications = () => {
       if (userIds.length === 0) return [];
 
       const { data: profiles } = await supabase
-        .from("profiles")
-        .select("id, display_name, avatar_url, email")
+        .from("public_profiles" as any)
+        .select("id, display_name, avatar_url")
         .in("id", userIds);
 
       const profileMap = new Map(profiles?.map((p) => [p.id, p]));
@@ -143,30 +143,11 @@ const Notifications = () => {
       groupId: string;
       status: string;
     }) => {
-      const { error } = await supabase
-        .from("group_members")
-        .update({ status: status as any })
-        .eq("id", memberId);
+      const { error } = await supabase.rpc("update_group_member_status" as any, {
+        _member_id: memberId,
+        _status: status,
+      });
       if (error) throw error;
-
-      const groupName =
-        adminGroups?.find((g) => g.id === groupId)?.name || "el grupo";
-
-      if (status === "approved") {
-        await supabase.from("notifications").insert({
-          user_id: userId,
-          type: "join_approved" as any,
-          message: `Tu solicitud para unirte a ${groupName} fue aprobada. ¡Ya puedes participar!`,
-          metadata: { group_id: groupId },
-        });
-      } else if (status === "rejected") {
-        await supabase.from("notifications").insert({
-          user_id: userId,
-          type: "join_rejected" as any,
-          message: `Tu solicitud para unirte a ${groupName} no fue aprobada.`,
-          metadata: { group_id: groupId },
-        });
-      }
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["pending-requests"] });
