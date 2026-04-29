@@ -2,14 +2,13 @@ import { Button } from "@/components/ui/button";
 import { Trophy, Bell, User } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useEffect, useState, useRef, useCallback } from "react";
 
 const Navbar = () => {
   const { user, loading } = useAuth();
-  const queryClient = useQueryClient();
 
   const [bellRinging, setBellRinging] = useState(false);
   const prevCountRef = useRef<number | null>(null);
