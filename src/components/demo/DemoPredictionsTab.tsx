@@ -105,6 +105,15 @@ const DemoPredictionsTab = ({ userId }: Props) => {
     },
   });
 
+  const { data: isDemoAdmin } = useQuery({
+    queryKey: ["demo-admin-role", userId],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("current_user_is_admin" as any);
+      if (error) return false;
+      return Boolean(data);
+    },
+  });
+
   const predictionMap = useMemo(() => new Map(predictions?.map((p) => [p.demo_match_id, p])), [predictions]);
 
   const syncLiguilla = useMutation({
@@ -253,10 +262,12 @@ const DemoPredictionsTab = ({ userId }: Props) => {
               {lastUpdated ? `Última actualización: ${lastUpdated} CDMX` : "Actualiza para sincronizar API-Football"}
             </p>
           </div>
-          <Button variant="outline" className="gap-2" onClick={() => syncLiguilla.mutate()} disabled={syncLiguilla.isPending || isFetching}>
-            <RefreshCw className={`h-4 w-4 ${syncLiguilla.isPending ? "animate-spin" : ""}`} />
-            Actualizar resultados
-          </Button>
+          {isDemoAdmin && (
+            <Button variant="outline" className="gap-2" onClick={() => syncLiguilla.mutate()} disabled={syncLiguilla.isPending || isFetching}>
+              <RefreshCw className={`h-4 w-4 ${syncLiguilla.isPending ? "animate-spin" : ""}`} />
+              Actualizar resultados
+            </Button>
+          )}
         </div>
       </div>
 
