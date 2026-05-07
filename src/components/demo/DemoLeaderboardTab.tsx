@@ -11,8 +11,11 @@ interface Props {
 }
 
 const DemoLeaderboardTab = ({ currentUserId }: Props) => {
+  const queryClient = useQueryClient();
   const { data: leaderboard, isLoading } = useQuery({
     queryKey: ["demo-leaderboard"],
+    staleTime: 0,
+    refetchOnWindowFocus: true,
     queryFn: async () => {
       // Get all demo group members
       const { data: members, error: mErr } = await supabase
@@ -33,21 +36,12 @@ const DemoLeaderboardTab = ({ currentUserId }: Props) => {
       // Get all demo predictions with points
       const { data: predictions, error: predErr } = await supabase
         .from("demo_predictions")
-        .select("user_id, points_awarded, predicted_home_score, predicted_away_score, demo_match_id");
+        .select("user_id, points_awarded");
       if (predErr) throw predErr;
-
-      // Only count Clausura demo matches, never stale Apertura results
-      const { data: clausuraMatches } = await supabase
-        .from("demo_matches")
-        .select("id")
-        .like("round_label", "Clausura%");
-
-      const clausuraMatchIds = new Set((clausuraMatches || []).map((m: any) => m.id));
 
       // Aggregate
       const statsMap = new Map<string, { points: number; exact: number; correct: number; total: number }>();
       (predictions || []).forEach((p: any) => {
-        if (!clausuraMatchIds.has(p.demo_match_id)) return;
         const current = statsMap.get(p.user_id) || { points: 0, exact: 0, correct: 0, total: 0 };
         if (p.points_awarded !== null && p.points_awarded !== undefined) {
           current.points += p.points_awarded;
@@ -73,6 +67,20 @@ const DemoLeaderboardTab = ({ currentUserId }: Props) => {
       return board;
     },
   });
+
+  useEffect(() => {
+    const channel = supabase
+      .channel("demo-leaderboard-realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "demo_predictions" },
+        () => queryClient.invalidateQueries({ queryKey: ["demo-leaderboard"] })
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
 
   if (isLoading) return <div className="space-y-3">{Array.from({ length: 5 }).map((_, i) => <div key={i} className="h-14 rounded-xl bg-muted animate-pulse" />)}</div>;
 
