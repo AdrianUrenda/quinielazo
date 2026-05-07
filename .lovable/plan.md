@@ -1,29 +1,34 @@
-## Problema
+## Objetivo
 
-En `DemoLeaderboardTab.tsx` la consulta filtra los partidos demo por `round_label LIKE "Clausura%"` (un legado de cuando se mezclaban Apertura/Clausura). Pero `demo-sync` ahora guarda los `round_label` que devuelve la API (`"Cuartos de Final"`, `"Semifinales"`, `"Final"`, etc.), ninguno empieza con "Clausura". Por eso `clausuraMatchIds` queda vacío y **todas las predicciones se descartan**, resultando en 0 puntos para todos los miembros aunque el cálculo en BD sí ocurrió.
+Actualizar automáticamente los resultados de los partidos cada 30 minutos, sin depender de que un usuario presione "Actualizar".
 
-Verificado en BD:
-- `demo_matches.round_label` = `"Cuartos de Final"` (4 finished, 4 upcoming)
-- `demo_predictions` tiene `points_awarded` asignados (1 pt en partidos finalizados)
-- Tabla de Posiciones muestra 0 porque el filtro elimina todo
+## Enfoque
 
-En grupos privados (`LeaderboardTab.tsx`) **no existe ese filtro defectuoso**, así que la lógica de agregación es correcta. Sin embargo, comparten un problema secundario: tras el scoring automático del cron `api-football-fixtures`, el frontend no se entera hasta que el usuario navega de nuevo. Vamos a reforzar la frescura de datos en ambos.
+Usar `pg_cron` + `pg_net` de Supabase para invocar la edge function `api-football-fixtures` con `action: "sync-matches"` cada 30 minutos. Esto reutiliza la lógica existente de sincronización (que ya escribe marcadores en `matches` y dispara el cálculo de puntos en `predictions`), por lo que la tabla de Posiciones se refrescará en tiempo real vía las suscripciones Realtime ya implementadas.
 
-## Cambios
+## Cambios técnicos
 
-### 1. `src/components/demo/DemoLeaderboardTab.tsx`
-- Eliminar el filtro `round_label LIKE "Clausura%"` y la consulta auxiliar a `demo_matches` (ya no es necesaria; demo-sync sólo inserta Liguilla Clausura).
-- Agregar exactos/correctos/total contando todas las predicciones del usuario directamente.
+1. **Habilitar extensiones** `pg_cron` y `pg_net` en el proyecto Supabase (si no lo están).
+2. **Ajustar `supabase/functions/api-football-fixtures/index.ts**` para permitir la invocación programada:
+  - Hoy `action: "sync-matches"` exige un usuario autenticado (`requireAuthenticatedUser`). Cron no envía sesión de usuario.
+  - Añadir una vía de autorización alterna: aceptar la llamada cuando el header `Authorization: Bearer <SUPABASE_SERVICE_ROLE_KEY>` (o un secreto dedicado `CRON_SECRET`) esté presente. Mantener el path para usuarios autenticados sin cambios.
+3. **Crear el cron job** mediante la herramienta de inserción SQL (no migración, porque incluye la URL del proyecto y la service key — no debe propagarse en remixes):
+  ```sql
+   select cron.schedule(
+     'sync-world-cup-fixtures-every30minutes',
+     '0 * * * *',
+     $$ select net.http_post(
+       url := 'https://yodixfzcxmuvaabfucgh.supabase.co/functions/v1/api-football-fixtures',
+       headers := '{"Content-Type":"application/json","Authorization":"Bearer <service-role>"}'::jsonb,
+       body := '{"action":"sync-matches"}'::jsonb
+     ); $$
+   );
+  ```
+   Se ejecuta al minuto 0 y 30 de cada hora (48 llamadas/día, muy por debajo de los límites típicos de API-Football).
+4. **Sin cambios en frontend**: las suscripciones Realtime sobre `predictions` (privados) y `demo_predictions` (demo) ya invalidan la query de Posiciones, así que en cuanto el cron actualice marcadores y se recalculen puntos, los leaderboards abiertos en cualquier navegador se refrescarán solos.
 
-### 2. `src/components/group/LeaderboardTab.tsx` y `DemoLeaderboardTab.tsx`
-- Configurar la query con `staleTime: 0` y `refetchOnWindowFocus: true` para que al volver al tab tras un scoring automático se actualicen los puntos.
-- Suscribirse vía Supabase Realtime a cambios en `predictions` (filtrado por `group_id`) y `demo_predictions`, e invalidar la query del leaderboard cuando llegue un UPDATE con `points_awarded`.
+## Notas
 
-### 3. `src/pages/GroupDashboard.tsx` y `src/pages/DemoGroup.tsx`
-- Al montar el dashboard, invalidar la query del leaderboard una vez para forzar refetch fresco.
-
-## Detalles técnicos
-
-- La RLS actual de `predictions` y `demo_predictions` ya permite leer puntos ajenos cuando `matches.status='finished'`, así que el agregado por usuario en el leaderboard sigue siendo correcto sin cambios de BD.
-- No requiere migraciones SQL ni edge functions nuevas.
-- Tras el cambio el leaderboard del demo reflejará los puntos ya calculados de los Cuartos de Final, y los grupos privados se actualizarán en tiempo real cuando `api-football-fixtures` marque puntos.
+- El job sólo cubre el Mundial (tabla `matches`). El grupo demo de Liga MX se gestiona manualmente por el Super Admin (memoria de proyecto), por lo que no se programa cron para `demo-sync`.
+- Si en el futuro se quiere mayor frecuencia durante días de partido, basta con cambiar el cron expression sin tocar código.
+- El botón "Actualizar" manual seguirá funcionando igual que hoy.
