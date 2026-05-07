@@ -78,7 +78,10 @@ const scorePredictionsForMatch = async (supabase: any, matchId: string, homeScor
 const requireAuthenticatedUser = async (authHeader: string | null) => {
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   if (!authHeader || !supabaseUrl || !anonKey) return false;
+  // Allow scheduled invocations (pg_cron) using the service role key as bearer token
+  if (serviceRoleKey && authHeader === `Bearer ${serviceRoleKey}`) return true;
   const authClient = createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: authHeader } } });
   const { data, error } = await authClient.auth.getUser();
   return !error && Boolean(data.user);
