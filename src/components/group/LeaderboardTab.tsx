@@ -1,4 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Trophy, Medal } from "lucide-react";
 import { motion } from "framer-motion";
@@ -11,8 +12,11 @@ interface Props {
 }
 
 const LeaderboardTab = ({ groupId, currentUserId }: Props) => {
+  const queryClient = useQueryClient();
   const { data: leaderboard, isLoading } = useQuery({
     queryKey: ["leaderboard", groupId],
+    staleTime: 0,
+    refetchOnWindowFocus: true,
     queryFn: async () => {
       // Get approved members
       const { data: members, error: mErr } = await supabase
@@ -60,6 +64,20 @@ const LeaderboardTab = ({ groupId, currentUserId }: Props) => {
       return board;
     },
   });
+
+  useEffect(() => {
+    const channel = supabase
+      .channel(`leaderboard-realtime-${groupId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "predictions", filter: `group_id=eq.${groupId}` },
+        () => queryClient.invalidateQueries({ queryKey: ["leaderboard", groupId] })
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [groupId, queryClient]);
 
   if (isLoading) return <div className="space-y-3">{Array.from({ length: 5 }).map((_, i) => <div key={i} className="h-14 rounded-xl bg-muted animate-pulse" />)}</div>;
 
