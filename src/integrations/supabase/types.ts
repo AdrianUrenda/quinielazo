@@ -464,6 +464,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      _cron_secret: { Args: never; Returns: string }
       current_user_is_admin: { Args: never; Returns: boolean }
       delete_user_account: { Args: never; Returns: undefined }
       get_group_by_invite_code: {
