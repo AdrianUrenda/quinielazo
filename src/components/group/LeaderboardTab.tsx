@@ -12,8 +12,11 @@ interface Props {
 }
 
 const LeaderboardTab = ({ groupId, currentUserId }: Props) => {
+  const queryClient = useQueryClient();
   const { data: leaderboard, isLoading } = useQuery({
     queryKey: ["leaderboard", groupId],
+    staleTime: 0,
+    refetchOnWindowFocus: true,
     queryFn: async () => {
       // Get approved members
       const { data: members, error: mErr } = await supabase
