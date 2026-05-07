@@ -185,7 +185,7 @@ Deno.serve(async (req) => {
 
     if (action === "sync-matches") {
       const authHeader = req.headers.get("Authorization");
-      const isAuthenticated = await requireAuthenticatedUser(authHeader);
+      const isAuthenticated = await requireAuthenticatedCaller(authHeader);
       if (!isAuthenticated) {
         return new Response(JSON.stringify({ error: "Unauthorized" }), {
           status: 401,
