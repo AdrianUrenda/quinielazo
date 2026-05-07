@@ -65,6 +65,20 @@ const LeaderboardTab = ({ groupId, currentUserId }: Props) => {
     },
   });
 
+  useEffect(() => {
+    const channel = supabase
+      .channel(`leaderboard-realtime-${groupId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "predictions", filter: `group_id=eq.${groupId}` },
+        () => queryClient.invalidateQueries({ queryKey: ["leaderboard", groupId] })
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [groupId, queryClient]);
+
   if (isLoading) return <div className="space-y-3">{Array.from({ length: 5 }).map((_, i) => <div key={i} className="h-14 rounded-xl bg-muted animate-pulse" />)}</div>;
 
   if (!leaderboard?.length) return <p className="text-center text-muted-foreground py-12 font-body">No hay miembros aprobados aún.</p>;
