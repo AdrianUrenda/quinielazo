@@ -119,22 +119,24 @@ const MyGroups = () => {
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.05 }}
-                    className="card-elevated rounded-xl p-4 flex items-center gap-4"
+                    className="card-elevated rounded-xl p-3 sm:p-4 flex items-center gap-3 sm:gap-4"
                   >
-                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-lg font-display text-primary shrink-0">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-primary/10 flex items-center justify-center text-base sm:text-lg font-display text-primary shrink-0">
                       {g.name.charAt(0).toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-semibold font-body text-foreground truncate">{g.name}</p>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <p className="text-sm sm:text-base font-semibold font-body text-foreground truncate">{g.name}</p>
+                        <Badge variant="outline" className={`text-[9px] sm:text-[10px] px-1.5 py-0 shrink-0 ${badge.className}`}>
+                          {badge.label}
+                        </Badge>
+                      </div>
                       {g.description && (
                         <p className="text-xs text-muted-foreground font-body truncate">{g.description}</p>
                       )}
                     </div>
-                    <Badge variant="outline" className={`text-[10px] shrink-0 ${badge.className}`}>
-                      {badge.label}
-                    </Badge>
                     {canView && (
-                      <Button size="sm" variant="secondary" onClick={() => navigate(`/group/${g.id}`)}>
+                      <Button size="sm" variant="secondary" className="shrink-0" onClick={() => navigate(`/group/${g.id}`)}>
                         Ver grupo
                       </Button>
                     )}
