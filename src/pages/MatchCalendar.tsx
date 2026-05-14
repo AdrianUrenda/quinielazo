@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { Helmet } from "react-helmet-async";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { AlertCircle, Calendar, Filter, MapPin, RefreshCw, Trophy } from "lucide-react";
@@ -160,7 +161,16 @@ const MatchCalendar = () => {
   const lastUpdated = data?.updatedAt ? formatMexicoTime(data.updatedAt) : null;
 
   return (
-    <div className="min-h-screen bg-background">
+    <>
+      <Helmet>
+        <title>Calendario Mundial 2026 — Quinielazo 2026</title>
+        <meta name="description" content="Consulta el calendario completo del Mundial FIFA 2026: partidos, horarios, resultados y estadísticas oficiales." />
+        <link rel="canonical" href="https://quinielazo.link/calendar" />
+        <meta property="og:title" content="Calendario Mundial 2026 — Quinielazo 2026" />
+        <meta property="og:description" content="Todos los partidos, horarios y resultados del Mundial FIFA 2026." />
+        <meta property="og:url" content="https://quinielazo.link/calendar" />
+      </Helmet>
+      <div className="min-h-screen bg-background">
       <Navbar />
       <main className="pt-24 pb-16">
         <div className="container">
@@ -262,6 +272,7 @@ const MatchCalendar = () => {
       </main>
       <Footer />
     </div>
+    </>
   );
 };
 

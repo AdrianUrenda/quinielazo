@@ -1,9 +1,18 @@
+import { Helmet } from "react-helmet-async";
 import Navbar from "@/components/landing/Navbar";
-import Footer from "@/components/landing/Footer";
 
 const Terms = () => {
   return (
-    <div className="min-h-screen flex flex-col bg-background text-foreground">
+    <>
+      <Helmet>
+        <title>Términos y Condiciones — Quinielazo 2026</title>
+        <meta name="description" content="Términos y condiciones de uso de Quinielazo 2026: reglas del servicio, creación de grupos, pagos y responsabilidades." />
+        <link rel="canonical" href="https://quinielazo.link/terms" />
+        <meta property="og:title" content="Términos y Condiciones — Quinielazo 2026" />
+        <meta property="og:description" content="Conoce los términos de uso de Quinielazo 2026." />
+        <meta property="og:url" content="https://quinielazo.link/terms" />
+      </Helmet>
+      <div className="min-h-screen flex flex-col bg-background text-foreground">
       <Navbar />
       <main className="flex-1 pt-24 pb-16">
         <div className="container max-w-[800px] mx-auto px-4 font-body text-foreground">
@@ -99,6 +108,7 @@ const Terms = () => {
       </main>
       <Footer />
     </div>
+    </>
   );
 };
 

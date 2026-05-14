@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { Helmet } from "react-helmet-async";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { AlertCircle, RefreshCw, Shield, Trophy } from "lucide-react";
@@ -92,7 +93,16 @@ const Statistics = () => {
     : null;
 
   return (
-    <div className="min-h-screen bg-background">
+    <>
+      <Helmet>
+        <title>Estadísticas Mundial 2026 — Quinielazo 2026</title>
+        <meta name="description" content="Standings de grupos y bracket de la fase eliminatoria del Mundial FIFA 2026. Datos actualizados en vivo." />
+        <link rel="canonical" href="https://quinielazo.link/statistics" />
+        <meta property="og:title" content="Estadísticas Mundial 2026 — Quinielazo 2026" />
+        <meta property="og:description" content="Tablas de posiciones y bracket del Mundial FIFA 2026." />
+        <meta property="og:url" content="https://quinielazo.link/statistics" />
+      </Helmet>
+      <div className="min-h-screen bg-background">
       <Navbar />
       <main className="container pt-24 pb-16">
         <div className="mb-8 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
@@ -154,6 +164,7 @@ const Statistics = () => {
       </main>
       <Footer />
     </div>
+    </>
   );
 };
 

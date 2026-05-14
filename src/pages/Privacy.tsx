@@ -1,9 +1,18 @@
+import { Helmet } from "react-helmet-async";
 import Navbar from "@/components/landing/Navbar";
-import Footer from "@/components/landing/Footer";
 
 const Privacy = () => {
   return (
-    <div className="min-h-screen flex flex-col bg-background text-foreground">
+    <>
+      <Helmet>
+        <title>Aviso de Privacidad — Quinielazo 2026</title>
+        <meta name="description" content="Aviso de Privacidad de Quinielazo 2026: cómo protegemos tus datos personales conforme a la LFPDPPP." />
+        <link rel="canonical" href="https://quinielazo.link/privacy" />
+        <meta property="og:title" content="Aviso de Privacidad — Quinielazo 2026" />
+        <meta property="og:description" content="Conoce cómo Quinielazo 2026 maneja y protege tus datos personales." />
+        <meta property="og:url" content="https://quinielazo.link/privacy" />
+      </Helmet>
+      <div className="min-h-screen flex flex-col bg-background text-foreground">
       <Navbar />
       <main className="flex-1 pt-24 pb-16">
         <div className="container max-w-[800px] mx-auto px-4 font-body">
@@ -155,6 +164,7 @@ const Privacy = () => {
       </main>
       <Footer />
     </div>
+    </>
   );
 };
 
