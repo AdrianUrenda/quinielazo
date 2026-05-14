@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
-import { Trophy, Bell, User } from "lucide-react";
+import { Sheet, SheetContent, SheetTrigger, SheetClose, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Trophy, Bell, Menu, Calendar, BarChart3, Users as UsersIcon, User, LogIn, UserPlus } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
