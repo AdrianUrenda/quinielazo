@@ -101,6 +101,7 @@ const Statistics = () => {
         <meta property="og:title" content="Estadísticas Mundial 2026 — Quinielazo 2026" />
         <meta property="og:description" content="Tablas de posiciones y bracket del Mundial FIFA 2026." />
         <meta property="og:url" content="https://quinielazo.link/statistics" />
+        <meta property="og:image" content="https://quinielazo.link/og-image.jpg" />
       </Helmet>
       <div className="min-h-screen bg-background">
       <Navbar />

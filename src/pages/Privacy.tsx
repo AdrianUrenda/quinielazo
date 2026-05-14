@@ -12,6 +12,7 @@ const Privacy = () => {
         <meta property="og:title" content="Aviso de Privacidad — Quinielazo 2026" />
         <meta property="og:description" content="Conoce cómo Quinielazo 2026 maneja y protege tus datos personales." />
         <meta property="og:url" content="https://quinielazo.link/privacy" />
+        <meta property="og:image" content="https://quinielazo.link/og-image.jpg" />
       </Helmet>
       <div className="min-h-screen flex flex-col bg-background text-foreground">
       <Navbar />
