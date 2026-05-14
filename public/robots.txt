@@ -1,14 +1,13 @@
-User-agent: Googlebot
-Allow: /
-
-User-agent: Bingbot
-Allow: /
-
-User-agent: Twitterbot
-Allow: /
-
-User-agent: facebookexternalhit
-Allow: /
-
 User-agent: *
 Allow: /
+Disallow: /groups
+Disallow: /group/
+Disallow: /join/
+Disallow: /demo
+Disallow: /demo/admin
+Disallow: /notifications
+Disallow: /profile
+Disallow: /reset-password
+Disallow: /forgot-password
+
+Sitemap: https://quinielazo.link/sitemap.xml
