@@ -12,6 +12,7 @@ const Terms = () => {
         <meta property="og:title" content="Términos y Condiciones — Quinielazo 2026" />
         <meta property="og:description" content="Conoce los términos de uso de Quinielazo 2026." />
         <meta property="og:url" content="https://quinielazo.link/terms" />
+        <meta property="og:image" content="https://quinielazo.link/og-image.jpg" />
       </Helmet>
       <div className="min-h-screen flex flex-col bg-background text-foreground">
       <Navbar />
