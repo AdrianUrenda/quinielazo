@@ -1,27 +1,40 @@
-## Problema
+# Mejorar la sección "¿Cómo funciona?" en Home
 
-En mobile, el navbar muestra logo + "Estadísticas" + campana + "Mis Grupos" + perfil todos en una sola fila, lo que se ve apretado especialmente en pantallas angostas (~390px).
+## Objetivo
 
-## Solución
+Hacer más clara la explicación del sistema de puntos y agregar una nueva característica que explique el control de acceso por parte del administrador (ideal para "vaquitas" entre amigos/familia).
 
-Reemplazar la fila apretada por un patrón estándar de navbar mobile:
+## Cambios en `src/components/landing/Features.tsx`
 
-1. **Mobile (`md:hidden`)**: dejar solo en la barra superior:
-   - Logo Quinielazo (izquierda)
-   - Campana de notificaciones con badge (si hay user)
-   - Botón hamburguesa (icono `Menu` de lucide-react)
+### 1. Tarjeta destacada de Sistema de Puntos (arriba, full-width)
 
-2. **Menú hamburguesa**: usar el componente `Sheet` de shadcn (`@/components/ui/sheet`) que se desliza desde la derecha, conteniendo:
-   - Si hay user: Calendario, Estadísticas, Mis Grupos, Mi Perfil, Cerrar sesión
-   - Si no hay user: Calendario, Estadísticas, Iniciar sesión, Registrarse (botón hero)
-   - Cada link cierra el sheet al hacer click
+Antes de la grilla de tarjetas actuales, agregar una tarjeta hero que ocupe todo el ancho con colores llamativos (gradiente dorado de la marca + acentos verdes), destacando visualmente:
 
-3. **Logo en mobile**: reducir ligeramente el tamaño del texto "QUINIELAZO" (de `text-2xl` a `text-xl` solo en mobile) para más respiro.
+- Título: **"SISTEMA DE PUNTOS"**
+- Dos bloques grandes lado a lado dentro de la tarjeta:
+  - **3 PTS** — Marcador exacto (ej. predices 2-1 y termina 2-1)
+  - **1 PT** — Acertar solo el resultado (ganador/empate, sin marcador exacto)
+- Nota inferior: desempate por cantidad de marcadores exactos.
+- Estilo: fondo con `--gradient-gold` o gradiente verde-dorado, ícono Trophy/Target grande, tipografía display más prominente, sombra `--shadow-gold`, animación de entrada con framer-motion.
 
-4. **Desktop (`md:flex`)**: sin cambios, sigue mostrando todos los links inline.
+### 2. Reemplazar la tarjeta genérica "SISTEMA JUSTO"
 
-## Archivos a modificar
+Como el sistema de puntos ya está destacado arriba, esa tarjeta queda redundante. Se reemplaza por la nueva:
 
-- `src/components/landing/Navbar.tsx`: agregar estado `mobileMenuOpen`, importar `Sheet`/`SheetContent`/`SheetTrigger` y el icono `Menu`, reemplazar el bloque `md:hidden` por logo+campana+hamburguesa, y mover los links al contenido del Sheet.
+- **Ícono:** `ShieldCheck` o `UserCheck` (lucide-react)
+- **Título:** "ADMIN APRUEBA ACCESOS"
+- **Descripción:** "El administrador autoriza cada solicitud de ingreso. Ideal para 'vaquitas' entre amigos o familia: cobra la cuota antes de aprobar al miembro."
 
-No se tocan otros componentes ni lógica de auth/notificaciones.
+### 3. Grilla resultante (6 tarjetas, sin cambios estructurales)
+
+Grupos privados · Predicciones · Tabla en vivo · **Admin aprueba accesos (nuevo)** · Notificaciones · Fácil de usar
+
+## Diseño visual
+
+- La tarjeta destacada usa los tokens existentes (`--gradient-gold`, `--shadow-gold`, `--primary`, `--secondary`) — sin colores hardcoded.
+- Responsive: en mobile los dos bloques 3 PTS / 1 PT se apilan; en desktop quedan lado a lado.
+- Mantener consistencia con la tipografía display (Bebas Neue) y animaciones framer-motion ya usadas en el archivo.
+
+## Alcance
+
+Solo se modifica `src/components/landing/Features.tsx`. No hay cambios de lógica de negocio ni de otros componentes.
