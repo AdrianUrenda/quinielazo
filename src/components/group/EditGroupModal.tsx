@@ -116,6 +116,19 @@ const EditGroupModal = ({ open, onOpenChange, group }: Props) => {
         <div className="space-y-4 pt-2">
           <div className="space-y-2">
             <Label className="font-body text-sm flex items-center gap-1.5">
+              <Tag className="w-3.5 h-3.5" /> Nombre del grupo
+            </Label>
+            <Input
+              placeholder="Ej: Quiniela de la familia"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              maxLength={50}
+            />
+            <p className="text-xs text-muted-foreground font-body text-right">{name.length}/50</p>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="font-body text-sm flex items-center gap-1.5">
               <FileText className="w-3.5 h-3.5" /> Descripción
             </Label>
             <Textarea
