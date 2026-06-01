@@ -26,6 +26,7 @@ interface Props {
 const EditGroupModal = ({ open, onOpenChange, group }: Props) => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const [name, setName] = useState(group.name || "");
   const [description, setDescription] = useState(group.description || "");
   const [accessCode, setAccessCode] = useState(group.access_code || "");
   const [prizeDescription, setPrizeDescription] = useState(group.prize_description || "");
@@ -34,6 +35,7 @@ const EditGroupModal = ({ open, onOpenChange, group }: Props) => {
 
   useEffect(() => {
     if (open) {
+      setName(group.name || "");
       setDescription(group.description || "");
       setAccessCode(group.access_code || "");
       setPrizeDescription(group.prize_description || "");
@@ -41,6 +43,11 @@ const EditGroupModal = ({ open, onOpenChange, group }: Props) => {
   }, [open, group]);
 
   const handleSave = async () => {
+    const trimmedName = name.trim();
+    if (trimmedName.length < 3) {
+      toast.error("El nombre del grupo debe tener al menos 3 caracteres.");
+      return;
+    }
     if (accessCode && (accessCode.length < 4 || accessCode.length > 8)) {
       toast.error("El código de acceso debe tener entre 4 y 8 caracteres.");
       return;
@@ -55,6 +62,7 @@ const EditGroupModal = ({ open, onOpenChange, group }: Props) => {
       const { error } = await supabase
         .from("groups")
         .update({
+          name: trimmedName,
           description: description.trim() || null,
           access_code: accessCode.trim() || null,
           prize_description: prizeDescription.trim() || null,
@@ -65,6 +73,7 @@ const EditGroupModal = ({ open, onOpenChange, group }: Props) => {
 
       toast.success("Grupo actualizado correctamente");
       queryClient.invalidateQueries({ queryKey: ["group", group.id] });
+      queryClient.invalidateQueries({ queryKey: ["my-groups"] });
       onOpenChange(false);
     } catch (err: any) {
       toast.error(err.message || "Error al actualizar el grupo");
