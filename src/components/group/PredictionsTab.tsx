@@ -276,7 +276,9 @@ const PredictionsTab = ({ groupId, userId }: Props) => {
                   canPredict={canPredict(match)}
                   getScore={getScore}
                   setScore={setScore}
+                  teamGroupMap={teamGroupMap}
                 />
+
               ))}
             </div>
           </section>
