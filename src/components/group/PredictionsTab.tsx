@@ -316,10 +316,10 @@ const PointsBadge = ({ pred }: { pred?: any }) => {
   return <Badge variant="outline" className="bg-muted/50 text-[10px] text-muted-foreground">Pendiente</Badge>;
 };
 
-const PredictionMatchCard = ({ match, index, pred, canPredict, getScore, setScore }: any) => {
+const PredictionMatchCard = ({ match, index, pred, canPredict, getScore, setScore, teamGroupMap }: any) => {
   const statusDetail = match.status_detail || (match.status === "finished" ? "FT" : "NS");
   const badge = getStatusBadge(match.status, statusDetail);
-  const group = getGroup(match.round_label, match.group_label);
+  const group = getGroup(match.round_label, match.group_label, teamGroupMap, match.home_team, match.away_team);
   const homeName = match.home_team || "TBD";
   const awayName = match.away_team || "TBD";
   const hasFinalScore = (match.status === "finished" || finalStatuses.has(statusDetail)) && match.home_score !== null && match.away_score !== null;
