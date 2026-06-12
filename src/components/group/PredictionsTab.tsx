@@ -67,6 +67,18 @@ const PredictionsTab = ({ groupId, userId }: Props) => {
     },
   });
 
+  const { data: teamGroupMap } = useQuery({
+    queryKey: ["team-group-map"],
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke("api-football-fixtures", {
+        body: { action: "team-groups" },
+      });
+      if (error) throw error;
+      return ((data as any)?.teamGroupMap || {}) as Record<string, string>;
+    },
+    staleTime: 1000 * 60 * 60,
+  });
+
   const predictionMap = useMemo(() => new Map(predictions?.map((p) => [p.match_id, p])), [predictions]);
 
   const syncMatches = useMutation({
