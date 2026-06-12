@@ -270,7 +270,7 @@ const MatchCalendar = () => {
                     </h3>
                   </div>
                   <div className="space-y-3">
-                    {dayFixtures.map((fixture, index) => <MatchCard key={fixture.fixture.id} fixture={fixture} index={index} />)}
+                    {dayFixtures.map((fixture, index) => <MatchCard key={fixture.fixture.id} fixture={fixture} index={index} teamGroupMap={teamGroupMap} />)}
                   </div>
                 </section>
               ))
