@@ -66,10 +66,12 @@ const fetchTeamGroupMap = async (apiKey: string): Promise<Record<string, string>
     for (const teams of standingsGroups) {
       for (const team of teams || []) {
         const groupName: string = team?.group || "";
-        const letter = groupName.match(/[A-L]$/i)?.[0]?.toUpperCase()
-          || groupName.replace(/.*Group\s+/i, "").trim().toUpperCase();
+        // Only accept explicit "Group X" where X is a single letter A-L with a word boundary.
+        // This skips the junk "Group Stage" pool returned by API-Football, whose teams
+        // would otherwise pollute the map (e.g. "Group Stage" → falsely "E").
+        const letter = groupName.match(/Group\s+([A-L])\b/i)?.[1]?.toUpperCase();
         const name: string = team?.team?.name;
-        if (letter && name) map[name] = letter;
+        if (letter && name && !map[name]) map[name] = letter;
       }
     }
     return map;
