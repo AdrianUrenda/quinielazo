@@ -60,8 +60,18 @@ export const getStage = (round?: string | null, fallbackStage?: string | null) =
   return "all";
 };
 
-export const getGroup = (round?: string | null, groupLabel?: string | null) =>
-  groupLabel?.toUpperCase() || round?.match(/group\s+([A-L])/i)?.[1]?.toUpperCase() || null;
+export const getGroup = (
+  round?: string | null,
+  groupLabel?: string | null,
+  teamGroupMap?: Record<string, string> | null,
+  homeTeam?: string | null,
+  awayTeam?: string | null,
+) =>
+  groupLabel?.toUpperCase() ||
+  round?.match(/group\s+([A-L])/i)?.[1]?.toUpperCase() ||
+  (teamGroupMap && homeTeam ? teamGroupMap[homeTeam]?.toUpperCase() : undefined) ||
+  (teamGroupMap && awayTeam ? teamGroupMap[awayTeam]?.toUpperCase() : undefined) ||
+  null;
 
 export const getStageLabel = (round?: string | null, fallbackStage?: string | null) => {
   const stage = getStage(round, fallbackStage);
