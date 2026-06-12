@@ -53,6 +53,32 @@ const fetchWorldCupFixtures = async (apiKey: string) => {
   return fixtures;
 };
 
+const fetchTeamGroupMap = async (apiKey: string): Promise<Record<string, string>> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/standings?league=${WORLD_CUP_LEAGUE_ID}&season=${WORLD_CUP_SEASON}`, {
+      headers: { "x-apisports-key": apiKey },
+    });
+    const payload = await response.json();
+    if (!response.ok || hasApiErrors(payload)) return {};
+
+    const map: Record<string, string> = {};
+    const standingsGroups = payload?.response?.[0]?.league?.standings || [];
+    for (const teams of standingsGroups) {
+      for (const team of teams || []) {
+        const groupName: string = team?.group || "";
+        const letter = groupName.match(/[A-L]$/i)?.[0]?.toUpperCase()
+          || groupName.replace(/.*Group\s+/i, "").trim().toUpperCase();
+        const name: string = team?.team?.name;
+        if (letter && name) map[name] = letter;
+      }
+    }
+    return map;
+  } catch (error) {
+    console.error("Failed to fetch standings for group map:", error);
+    return {};
+  }
+};
+
 const calculatePoints = (prediction: any, homeScore: number, awayScore: number) => {
   if (prediction.predicted_home_score === homeScore && prediction.predicted_away_score === awayScore) return 3;
   return Math.sign(prediction.predicted_home_score - prediction.predicted_away_score) === Math.sign(homeScore - awayScore) ? 1 : 0;
@@ -88,7 +114,7 @@ const requireAuthenticatedCaller = async (authHeader: string | null) => {
   return !error && Boolean(data.user);
 };
 
-const syncMatches = async (fixtures: any[]) => {
+const syncMatches = async (fixtures: any[], teamGroupMap: Record<string, string> = {}) => {
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   if (!supabaseUrl || !serviceRoleKey) throw new Error("Supabase service credentials are not configured");
@@ -118,14 +144,20 @@ const syncMatches = async (fixtures: any[]) => {
     const existing = byFixtureId.get(apiFixtureId) || byMatchNumber.get(matchNumber);
     const homeScore = getScore(fixture, "home", status);
     const awayScore = getScore(fixture, "away", status);
+    const stage = getStage(round);
+    const homeName = fixture?.teams?.home?.name || "TBD";
+    const awayName = fixture?.teams?.away?.name || "TBD";
+    const derivedGroup = stage === "group"
+      ? (teamGroupMap[homeName] || teamGroupMap[awayName] || getGroup(round))
+      : null;
     const row = {
       api_fixture_id: apiFixtureId,
       match_number: existing?.match_number ?? matchNumber ?? nextMatchNumber++,
-      stage: getStage(round),
-      group_label: getGroup(round),
+      stage,
+      group_label: derivedGroup,
       round_label: round,
-      home_team: fixture?.teams?.home?.name || "TBD",
-      away_team: fixture?.teams?.away?.name || "TBD",
+      home_team: homeName,
+      away_team: awayName,
       home_team_logo: fixture?.teams?.home?.logo ?? null,
       away_team_logo: fixture?.teams?.away?.logo ?? null,
       kickoff_utc: fixture?.fixture?.date,
@@ -194,11 +226,21 @@ Deno.serve(async (req) => {
       }
     }
 
-    const fixtures = await fetchWorldCupFixtures(apiKey);
-    const responseBody: Record<string, unknown> = { fixtures, updatedAt: new Date().toISOString() };
+    if (action === "team-groups") {
+      const teamGroupMap = await fetchTeamGroupMap(apiKey);
+      return new Response(JSON.stringify({ teamGroupMap, updatedAt: new Date().toISOString() }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const [fixtures, teamGroupMap] = await Promise.all([
+      fetchWorldCupFixtures(apiKey),
+      fetchTeamGroupMap(apiKey),
+    ]);
+    const responseBody: Record<string, unknown> = { fixtures, teamGroupMap, updatedAt: new Date().toISOString() };
 
     if (action === "sync-matches") {
-      Object.assign(responseBody, await syncMatches(fixtures.response || []));
+      Object.assign(responseBody, await syncMatches(fixtures.response || [], teamGroupMap));
     }
 
     return new Response(JSON.stringify(responseBody), {

@@ -28,6 +28,7 @@ type ApiFootballFixture = {
 
 type FixturesPayload = {
   fixtures?: { response?: ApiFootballFixture[] };
+  teamGroupMap?: Record<string, string>;
   updatedAt: string;
 };
 
@@ -92,7 +93,11 @@ const getStage = (round?: string | null) => {
   return "all";
 };
 
-const getGroup = (round?: string | null) => round?.match(/group\s+([A-L])/i)?.[1]?.toUpperCase() || null;
+const getGroup = (round?: string | null, teamGroupMap?: Record<string, string> | null, homeTeam?: string | null, awayTeam?: string | null) =>
+  round?.match(/group\s+([A-L])/i)?.[1]?.toUpperCase()
+  || (teamGroupMap && homeTeam ? teamGroupMap[homeTeam]?.toUpperCase() : undefined)
+  || (teamGroupMap && awayTeam ? teamGroupMap[awayTeam]?.toUpperCase() : undefined)
+  || null;
 
 const getStageLabel = (round?: string | null) => {
   const stage = getStage(round);
@@ -140,13 +145,15 @@ const MatchCalendar = () => {
     [data]
   );
 
+  const teamGroupMap = data?.teamGroupMap || {};
+
   const filtered = useMemo(() => {
     return fixtures.filter((fixture) => {
       if (stageFilter !== "all" && getStage(fixture.league.round) !== stageFilter) return false;
-      if (groupFilter !== "all" && getGroup(fixture.league.round) !== groupFilter) return false;
+      if (groupFilter !== "all" && getGroup(fixture.league.round, teamGroupMap, fixture.teams.home?.name, fixture.teams.away?.name) !== groupFilter) return false;
       return true;
     });
-  }, [fixtures, stageFilter, groupFilter]);
+  }, [fixtures, stageFilter, groupFilter, teamGroupMap]);
 
   const groupedByDate = useMemo(() => {
     const groups: Record<string, ApiFootballFixture[]> = {};
@@ -263,7 +270,7 @@ const MatchCalendar = () => {
                     </h3>
                   </div>
                   <div className="space-y-3">
-                    {dayFixtures.map((fixture, index) => <MatchCard key={fixture.fixture.id} fixture={fixture} index={index} />)}
+                    {dayFixtures.map((fixture, index) => <MatchCard key={fixture.fixture.id} fixture={fixture} index={index} teamGroupMap={teamGroupMap} />)}
                   </div>
                 </section>
               ))
@@ -292,10 +299,10 @@ const CalendarSkeleton = () => (
   </div>
 );
 
-const MatchCard = ({ fixture, index }: { fixture: ApiFootballFixture; index: number }) => {
+const MatchCard = ({ fixture, index, teamGroupMap }: { fixture: ApiFootballFixture; index: number; teamGroupMap?: Record<string, string> }) => {
   const status = fixture.fixture.status.short;
   const badge = getStatusBadge(status);
-  const group = getGroup(fixture.league.round);
+  const group = getGroup(fixture.league.round, teamGroupMap, fixture.teams.home?.name, fixture.teams.away?.name);
   const homeName = fixture.teams.home?.name || "TBD";
   const awayName = fixture.teams.away?.name || "TBD";
   const hasFinalScore = finalStatuses.has(status) && fixture.goals.home !== null && fixture.goals.away !== null;

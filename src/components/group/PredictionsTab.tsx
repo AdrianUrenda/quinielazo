@@ -67,6 +67,18 @@ const PredictionsTab = ({ groupId, userId }: Props) => {
     },
   });
 
+  const { data: teamGroupMap } = useQuery({
+    queryKey: ["team-group-map"],
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke("api-football-fixtures", {
+        body: { action: "team-groups" },
+      });
+      if (error) throw error;
+      return ((data as any)?.teamGroupMap || {}) as Record<string, string>;
+    },
+    staleTime: 1000 * 60 * 60,
+  });
+
   const predictionMap = useMemo(() => new Map(predictions?.map((p) => [p.match_id, p])), [predictions]);
 
   const syncMatches = useMutation({
@@ -115,10 +127,10 @@ const PredictionsTab = ({ groupId, userId }: Props) => {
   const filtered = useMemo(() => {
     return (matches || []).filter((match) => {
       if (stageFilter !== "all" && getStage(match.round_label, match.stage) !== stageFilter) return false;
-      if (groupFilter !== "all" && getGroup(match.round_label, match.group_label) !== groupFilter) return false;
+      if (groupFilter !== "all" && getGroup(match.round_label, match.group_label, teamGroupMap, match.home_team, match.away_team) !== groupFilter) return false;
       return true;
     });
-  }, [matches, stageFilter, groupFilter]);
+  }, [matches, stageFilter, groupFilter, teamGroupMap]);
 
   const groupedByDate = useMemo(() => {
     return filtered.reduce((acc: Record<string, any[]>, match) => {
@@ -264,7 +276,9 @@ const PredictionsTab = ({ groupId, userId }: Props) => {
                   canPredict={canPredict(match)}
                   getScore={getScore}
                   setScore={setScore}
+                  teamGroupMap={teamGroupMap}
                 />
+
               ))}
             </div>
           </section>
@@ -302,10 +316,10 @@ const PointsBadge = ({ pred }: { pred?: any }) => {
   return <Badge variant="outline" className="bg-muted/50 text-[10px] text-muted-foreground">Pendiente</Badge>;
 };
 
-const PredictionMatchCard = ({ match, index, pred, canPredict, getScore, setScore }: any) => {
+const PredictionMatchCard = ({ match, index, pred, canPredict, getScore, setScore, teamGroupMap }: any) => {
   const statusDetail = match.status_detail || (match.status === "finished" ? "FT" : "NS");
   const badge = getStatusBadge(match.status, statusDetail);
-  const group = getGroup(match.round_label, match.group_label);
+  const group = getGroup(match.round_label, match.group_label, teamGroupMap, match.home_team, match.away_team);
   const homeName = match.home_team || "TBD";
   const awayName = match.away_team || "TBD";
   const hasFinalScore = (match.status === "finished" || finalStatuses.has(statusDetail)) && match.home_score !== null && match.away_score !== null;
