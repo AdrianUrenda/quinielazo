@@ -145,13 +145,15 @@ const MatchCalendar = () => {
     [data]
   );
 
+  const teamGroupMap = data?.teamGroupMap || {};
+
   const filtered = useMemo(() => {
     return fixtures.filter((fixture) => {
       if (stageFilter !== "all" && getStage(fixture.league.round) !== stageFilter) return false;
-      if (groupFilter !== "all" && getGroup(fixture.league.round) !== groupFilter) return false;
+      if (groupFilter !== "all" && getGroup(fixture.league.round, teamGroupMap, fixture.teams.home?.name, fixture.teams.away?.name) !== groupFilter) return false;
       return true;
     });
-  }, [fixtures, stageFilter, groupFilter]);
+  }, [fixtures, stageFilter, groupFilter, teamGroupMap]);
 
   const groupedByDate = useMemo(() => {
     const groups: Record<string, ApiFootballFixture[]> = {};
