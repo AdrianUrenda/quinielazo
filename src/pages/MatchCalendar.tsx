@@ -93,7 +93,11 @@ const getStage = (round?: string | null) => {
   return "all";
 };
 
-const getGroup = (round?: string | null) => round?.match(/group\s+([A-L])/i)?.[1]?.toUpperCase() || null;
+const getGroup = (round?: string | null, teamGroupMap?: Record<string, string> | null, homeTeam?: string | null, awayTeam?: string | null) =>
+  round?.match(/group\s+([A-L])/i)?.[1]?.toUpperCase()
+  || (teamGroupMap && homeTeam ? teamGroupMap[homeTeam]?.toUpperCase() : undefined)
+  || (teamGroupMap && awayTeam ? teamGroupMap[awayTeam]?.toUpperCase() : undefined)
+  || null;
 
 const getStageLabel = (round?: string | null) => {
   const stage = getStage(round);
