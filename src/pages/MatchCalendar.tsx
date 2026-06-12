@@ -299,10 +299,10 @@ const CalendarSkeleton = () => (
   </div>
 );
 
-const MatchCard = ({ fixture, index }: { fixture: ApiFootballFixture; index: number }) => {
+const MatchCard = ({ fixture, index, teamGroupMap }: { fixture: ApiFootballFixture; index: number; teamGroupMap?: Record<string, string> }) => {
   const status = fixture.fixture.status.short;
   const badge = getStatusBadge(status);
-  const group = getGroup(fixture.league.round);
+  const group = getGroup(fixture.league.round, teamGroupMap, fixture.teams.home?.name, fixture.teams.away?.name);
   const homeName = fixture.teams.home?.name || "TBD";
   const awayName = fixture.teams.away?.name || "TBD";
   const hasFinalScore = finalStatuses.has(status) && fixture.goals.home !== null && fixture.goals.away !== null;
