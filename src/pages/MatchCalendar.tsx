@@ -28,6 +28,7 @@ type ApiFootballFixture = {
 
 type FixturesPayload = {
   fixtures?: { response?: ApiFootballFixture[] };
+  teamGroupMap?: Record<string, string>;
   updatedAt: string;
 };
 
