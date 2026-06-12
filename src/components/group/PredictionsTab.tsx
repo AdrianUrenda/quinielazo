@@ -127,10 +127,10 @@ const PredictionsTab = ({ groupId, userId }: Props) => {
   const filtered = useMemo(() => {
     return (matches || []).filter((match) => {
       if (stageFilter !== "all" && getStage(match.round_label, match.stage) !== stageFilter) return false;
-      if (groupFilter !== "all" && getGroup(match.round_label, match.group_label) !== groupFilter) return false;
+      if (groupFilter !== "all" && getGroup(match.round_label, match.group_label, teamGroupMap, match.home_team, match.away_team) !== groupFilter) return false;
       return true;
     });
-  }, [matches, stageFilter, groupFilter]);
+  }, [matches, stageFilter, groupFilter, teamGroupMap]);
 
   const groupedByDate = useMemo(() => {
     return filtered.reduce((acc: Record<string, any[]>, match) => {
