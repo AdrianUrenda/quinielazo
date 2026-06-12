@@ -226,11 +226,14 @@ Deno.serve(async (req) => {
       }
     }
 
-    const fixtures = await fetchWorldCupFixtures(apiKey);
-    const responseBody: Record<string, unknown> = { fixtures, updatedAt: new Date().toISOString() };
+    const [fixtures, teamGroupMap] = await Promise.all([
+      fetchWorldCupFixtures(apiKey),
+      fetchTeamGroupMap(apiKey),
+    ]);
+    const responseBody: Record<string, unknown> = { fixtures, teamGroupMap, updatedAt: new Date().toISOString() };
 
     if (action === "sync-matches") {
-      Object.assign(responseBody, await syncMatches(fixtures.response || []));
+      Object.assign(responseBody, await syncMatches(fixtures.response || [], teamGroupMap));
     }
 
     return new Response(JSON.stringify(responseBody), {
