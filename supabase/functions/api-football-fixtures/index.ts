@@ -53,6 +53,32 @@ const fetchWorldCupFixtures = async (apiKey: string) => {
   return fixtures;
 };
 
+const fetchTeamGroupMap = async (apiKey: string): Promise<Record<string, string>> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/standings?league=${WORLD_CUP_LEAGUE_ID}&season=${WORLD_CUP_SEASON}`, {
+      headers: { "x-apisports-key": apiKey },
+    });
+    const payload = await response.json();
+    if (!response.ok || hasApiErrors(payload)) return {};
+
+    const map: Record<string, string> = {};
+    const standingsGroups = payload?.response?.[0]?.league?.standings || [];
+    for (const teams of standingsGroups) {
+      for (const team of teams || []) {
+        const groupName: string = team?.group || "";
+        const letter = groupName.match(/[A-L]$/i)?.[0]?.toUpperCase()
+          || groupName.replace(/.*Group\s+/i, "").trim().toUpperCase();
+        const name: string = team?.team?.name;
+        if (letter && name) map[name] = letter;
+      }
+    }
+    return map;
+  } catch (error) {
+    console.error("Failed to fetch standings for group map:", error);
+    return {};
+  }
+};
+
 const calculatePoints = (prediction: any, homeScore: number, awayScore: number) => {
   if (prediction.predicted_home_score === homeScore && prediction.predicted_away_score === awayScore) return 3;
   return Math.sign(prediction.predicted_home_score - prediction.predicted_away_score) === Math.sign(homeScore - awayScore) ? 1 : 0;
