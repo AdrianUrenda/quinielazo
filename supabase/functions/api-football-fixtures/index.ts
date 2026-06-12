@@ -226,6 +226,13 @@ Deno.serve(async (req) => {
       }
     }
 
+    if (action === "team-groups") {
+      const teamGroupMap = await fetchTeamGroupMap(apiKey);
+      return new Response(JSON.stringify({ teamGroupMap, updatedAt: new Date().toISOString() }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const [fixtures, teamGroupMap] = await Promise.all([
       fetchWorldCupFixtures(apiKey),
       fetchTeamGroupMap(apiKey),
