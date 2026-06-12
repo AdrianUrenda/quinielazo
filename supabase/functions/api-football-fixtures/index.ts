@@ -114,7 +114,7 @@ const requireAuthenticatedCaller = async (authHeader: string | null) => {
   return !error && Boolean(data.user);
 };
 
-const syncMatches = async (fixtures: any[]) => {
+const syncMatches = async (fixtures: any[], teamGroupMap: Record<string, string> = {}) => {
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   if (!supabaseUrl || !serviceRoleKey) throw new Error("Supabase service credentials are not configured");
@@ -144,14 +144,20 @@ const syncMatches = async (fixtures: any[]) => {
     const existing = byFixtureId.get(apiFixtureId) || byMatchNumber.get(matchNumber);
     const homeScore = getScore(fixture, "home", status);
     const awayScore = getScore(fixture, "away", status);
+    const stage = getStage(round);
+    const homeName = fixture?.teams?.home?.name || "TBD";
+    const awayName = fixture?.teams?.away?.name || "TBD";
+    const derivedGroup = stage === "group"
+      ? (teamGroupMap[homeName] || teamGroupMap[awayName] || getGroup(round))
+      : null;
     const row = {
       api_fixture_id: apiFixtureId,
       match_number: existing?.match_number ?? matchNumber ?? nextMatchNumber++,
-      stage: getStage(round),
-      group_label: getGroup(round),
+      stage,
+      group_label: derivedGroup,
       round_label: round,
-      home_team: fixture?.teams?.home?.name || "TBD",
-      away_team: fixture?.teams?.away?.name || "TBD",
+      home_team: homeName,
+      away_team: awayName,
       home_team_logo: fixture?.teams?.home?.logo ?? null,
       away_team_logo: fixture?.teams?.away?.logo ?? null,
       kickoff_utc: fixture?.fixture?.date,
