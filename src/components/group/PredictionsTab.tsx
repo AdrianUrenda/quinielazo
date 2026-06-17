@@ -149,7 +149,7 @@ const PredictionsTab = ({ groupId, userId }: Props) => {
     });
 
   const { archivedDays, lastClosedDay, upcomingDays } = useMemo(() => {
-    const entries = Object.entries(groupedByDate);
+    const entries = Object.entries(groupedByDate) as [string, any[]][];
     let splitIdx = 0;
     while (splitIdx < entries.length && isDayPast(entries[splitIdx][1])) splitIdx++;
     const pastEntries = entries.slice(0, splitIdx);
