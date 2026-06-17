@@ -142,6 +142,29 @@ const PredictionsTab = ({ groupId, userId }: Props) => {
     }, {});
   }, [filtered]);
 
+  const isDayPast = (dayMatches: any[]) =>
+    dayMatches.every((m) => {
+      const sd = m.status_detail || "";
+      return m.status === "finished" || finalStatuses.has(sd) || cancelledStatuses.has(sd);
+    });
+
+  const { archivedDays, lastClosedDay, upcomingDays } = useMemo(() => {
+    const entries = Object.entries(groupedByDate);
+    let splitIdx = 0;
+    while (splitIdx < entries.length && isDayPast(entries[splitIdx][1])) splitIdx++;
+    const pastEntries = entries.slice(0, splitIdx);
+    const upcoming = entries.slice(splitIdx);
+    const last = pastEntries.length > 0 ? pastEntries[pastEntries.length - 1] : null;
+    const archived = pastEntries.slice(0, -1);
+    return { archivedDays: archived, lastClosedDay: last, upcomingDays: upcoming };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [groupedByDate]);
+
+  const archivedMatchCount = useMemo(
+    () => archivedDays.reduce((sum, [, ms]) => sum + (ms as any[]).length, 0),
+    [archivedDays]
+  );
+
   const lastUpdated = useMemo(() => {
     const latest = (matches || []).map((m) => m.last_synced_at).filter(Boolean).sort().at(-1);
     return latest ? formatMexicoTime(latest) : null;
