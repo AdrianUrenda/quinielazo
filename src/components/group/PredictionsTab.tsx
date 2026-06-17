@@ -366,6 +366,28 @@ const PredictionsTab = ({ groupId, userId }: Props) => {
   );
 };
 
+const DaySection = ({ dateKey, dayMatches, predictionMap, canPredict, getScore, setScore, teamGroupMap }: any) => (
+  <section className="mb-8">
+    <div className="sticky top-20 z-10 mb-3 border-b border-border bg-background/95 py-3 backdrop-blur-sm">
+      <h3 className="text-sm font-display tracking-wider text-primary uppercase">{formatMexicoDayHeader(dateKey)}</h3>
+    </div>
+    <div className="space-y-3">
+      {(dayMatches as any[]).map((match, index) => (
+        <PredictionMatchCard
+          key={match.id}
+          match={match}
+          index={index}
+          pred={predictionMap.get(match.id)}
+          canPredict={canPredict(match)}
+          getScore={getScore}
+          setScore={setScore}
+          teamGroupMap={teamGroupMap}
+        />
+      ))}
+    </div>
+  </section>
+);
+
 const CalendarSkeleton = () => (
   <div className="space-y-4">
     {Array.from({ length: 8 }).map((_, index) => (
