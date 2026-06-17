@@ -2,7 +2,8 @@
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { AlertCircle, Filter, Lock, MapPin, Radio, RefreshCw, Save, Trophy } from "lucide-react";
+import { AlertCircle, ChevronDown, Filter, History, Lock, MapPin, Radio, RefreshCw, Save, Trophy } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -141,6 +142,29 @@ const PredictionsTab = ({ groupId, userId }: Props) => {
     }, {});
   }, [filtered]);
 
+  const isDayPast = (dayMatches: any[]) =>
+    dayMatches.every((m) => {
+      const sd = m.status_detail || "";
+      return m.status === "finished" || finalStatuses.has(sd) || cancelledStatuses.has(sd);
+    });
+
+  const { archivedDays, lastClosedDay, upcomingDays } = useMemo(() => {
+    const entries = Object.entries(groupedByDate) as [string, any[]][];
+    let splitIdx = 0;
+    while (splitIdx < entries.length && isDayPast(entries[splitIdx][1])) splitIdx++;
+    const pastEntries = entries.slice(0, splitIdx);
+    const upcoming = entries.slice(splitIdx);
+    const last = pastEntries.length > 0 ? pastEntries[pastEntries.length - 1] : null;
+    const archived = pastEntries.slice(0, -1);
+    return { archivedDays: archived, lastClosedDay: last, upcomingDays: upcoming };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [groupedByDate]);
+
+  const archivedMatchCount = useMemo(
+    () => archivedDays.reduce((sum, [, ms]) => sum + (ms as any[]).length, 0),
+    [archivedDays]
+  );
+
   const lastUpdated = useMemo(() => {
     const latest = (matches || []).map((m) => m.last_synced_at).filter(Boolean).sort().at(-1);
     return latest ? formatMexicoTime(latest) : null;
@@ -261,28 +285,74 @@ const PredictionsTab = ({ groupId, userId }: Props) => {
           <p>No se encontraron partidos con estos filtros.</p>
         </div>
       ) : (
-        Object.entries(groupedByDate).map(([dateKey, dayMatches]) => (
-          <section key={dateKey} className="mb-8">
-            <div className="sticky top-20 z-10 mb-3 border-b border-border bg-background/95 py-3 backdrop-blur-sm">
-              <h3 className="text-sm font-display tracking-wider text-primary uppercase">{formatMexicoDayHeader(dateKey)}</h3>
-            </div>
-            <div className="space-y-3">
-              {(dayMatches as any[]).map((match, index) => (
-                <PredictionMatchCard
-                  key={match.id}
-                  match={match}
-                  index={index}
-                  pred={predictionMap.get(match.id)}
-                  canPredict={canPredict(match)}
+        <>
+          {archivedDays.length > 0 && (
+            <Collapsible defaultOpen={false}>
+              <CollapsibleTrigger asChild>
+                <button
+                  type="button"
+                  className="group flex w-full items-center justify-between gap-3 rounded-xl border border-border bg-card/60 px-4 py-3 text-left transition-colors hover:bg-card"
+                >
+                  <span className="flex items-center gap-2 text-sm font-display tracking-wider uppercase text-muted-foreground">
+                    <History className="h-4 w-4" />
+                    Partidos anteriores ({archivedMatchCount})
+                  </span>
+                  <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
+                </button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="mt-4">
+                {archivedDays.map(([dateKey, dayMatches]) => (
+                  <DaySection
+                    key={dateKey}
+                    dateKey={dateKey}
+                    dayMatches={dayMatches}
+                    predictionMap={predictionMap}
+                    canPredict={canPredict}
+                    getScore={getScore}
+                    setScore={setScore}
+                    teamGroupMap={teamGroupMap}
+                  />
+                ))}
+              </CollapsibleContent>
+            </Collapsible>
+          )}
+
+          {lastClosedDay && (
+            <DaySection
+              dateKey={lastClosedDay[0]}
+              dayMatches={lastClosedDay[1]}
+              predictionMap={predictionMap}
+              canPredict={canPredict}
+              getScore={getScore}
+              setScore={setScore}
+              teamGroupMap={teamGroupMap}
+            />
+          )}
+
+          {upcomingDays.length > 0 && (
+            <div>
+              {(archivedDays.length > 0 || lastClosedDay) && (
+                <div className="mb-3 mt-6 flex items-center gap-3">
+                  <div className="h-px flex-1 bg-border" />
+                  <span className="text-xs font-display tracking-wider uppercase text-primary">Próximos partidos</span>
+                  <div className="h-px flex-1 bg-border" />
+                </div>
+              )}
+              {upcomingDays.map(([dateKey, dayMatches]) => (
+                <DaySection
+                  key={dateKey}
+                  dateKey={dateKey}
+                  dayMatches={dayMatches}
+                  predictionMap={predictionMap}
+                  canPredict={canPredict}
                   getScore={getScore}
                   setScore={setScore}
                   teamGroupMap={teamGroupMap}
                 />
-
               ))}
             </div>
-          </section>
-        ))
+          )}
+        </>
       )}
 
       <div className="h-16" />
@@ -295,6 +365,28 @@ const PredictionsTab = ({ groupId, userId }: Props) => {
     </div>
   );
 };
+
+const DaySection = ({ dateKey, dayMatches, predictionMap, canPredict, getScore, setScore, teamGroupMap }: any) => (
+  <section className="mb-8">
+    <div className="sticky top-20 z-10 mb-3 border-b border-border bg-background/95 py-3 backdrop-blur-sm">
+      <h3 className="text-sm font-display tracking-wider text-primary uppercase">{formatMexicoDayHeader(dateKey)}</h3>
+    </div>
+    <div className="space-y-3">
+      {(dayMatches as any[]).map((match, index) => (
+        <PredictionMatchCard
+          key={match.id}
+          match={match}
+          index={index}
+          pred={predictionMap.get(match.id)}
+          canPredict={canPredict(match)}
+          getScore={getScore}
+          setScore={setScore}
+          teamGroupMap={teamGroupMap}
+        />
+      ))}
+    </div>
+  </section>
+);
 
 const CalendarSkeleton = () => (
   <div className="space-y-4">
