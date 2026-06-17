@@ -1,34 +1,37 @@
-## Problema
+# Predictions: jump straight to "where the action is"
 
-El endpoint `/standings` de API-Football devuelve **13 grupos**: los 12 reales (`Group Stage - Group A` … `Group L`, 4 equipos cada uno) **más uno extra llamado simplemente `"Group Stage"`** que contiene 12 equipos duplicados (Iran, Austria, Australia, Ivory Coast, Sweden, Uzbekistan, Qatar, Iraq, Saudi Arabia, Ghana, Haiti, Czech Republic) — aparentemente un pool legado de repechaje.
+Re-organize the Predictions tab inside each private group so users land on the most relevant matches without scrolling.
 
-En `fetchTeamGroupMap` (`supabase/functions/api-football-fixtures/index.ts`) hay dos defectos que convierten ese pool basura en falsos "Grupo E":
+## Behavior
 
-1. La regex `groupName.match(/[A-L]$/i)` toma la última letra del string. `"Group Stage"` termina en **"e"** → devuelve `"E"`.
-2. Iteramos los grupos en orden y **sobrescribimos** entradas previas. Como `"Group Stage"` viene al final, Czech Republic (que primero fue mapeado correctamente a `"A"`) queda reescrito a `"E"`, y se agregan 11 equipos más a "E".
+Each time a user opens the Predictions tab (or changes filters):
 
-Resultado en BD: Grupo E tiene 18 partidos; A solo 4; varios grupos a 5.
+1. The list is split in three visual blocks, in this order top-to-bottom:
+   - **Partidos anteriores** — collapsible section, **collapsed by default**, containing every day whose matches are all finished/cancelled, *except* the most recent one. Header shows a count, e.g. `Partidos anteriores (24) ▸`.
+   - **Última jornada disputada** — the most recent past day, always expanded, so the user immediately sees their last prediction and the points awarded.
+   - **Próximos partidos** — all upcoming/live days, always expanded, where users can keep editing predictions.
+2. Day headers keep their current sticky styling inside each block.
+3. If there are no past matches yet (tournament hasn't started), the collapsible block is hidden and only "Próximos partidos" renders.
+4. If every match is already finished, only the collapsible block + last day render, and "Próximos partidos" is hidden.
+5. When filters (stage / group) are applied, the same 3-block logic re-runs over the filtered set.
+6. The existing top bar ("Calendario oficial" + Actualizar resultados), filters, the floating "Guardar predicciones" button, and the match-card UI stay exactly as they are.
 
-## Solución
+## Why this UX
 
-Una sola edit en `fetchTeamGroupMap`:
+- Users see their **most recent result first** (last day disputed) — clear feedback on points earned.
+- Open matches are now **near the top**, not at the bottom of a long list.
+- Older history is one click away via the collapsible, so nothing is lost.
 
-1. Extraer la letra solo con `groupName.match(/Group\s+([A-L])\b/i)` (requiere "Group <Letra>" con frontera). Si no matchea → ignorar ese standings group completo (no procesar sus equipos).
-2. No sobrescribir: `if (!map[name]) map[name] = letter;` por defensa adicional.
+## Technical notes
 
-Esto descarta el pool `"Group Stage"` y deja el mapping limpio (47 equipos, letra correcta).
+File: `src/components/group/PredictionsTab.tsx` only. No backend, no schema, no other components.
 
-## Resincronización de datos
-
-Después de desplegar la edge function, el usuario presiona **"Actualizar resultados"** una vez en cualquier grupo. `syncMatches` recalculará `group_label` para los 72 partidos de fase de grupos con el mapa correcto.
-
-## Verificación
-
-```sql
-SELECT group_label, COUNT(*) FROM matches WHERE stage='group' GROUP BY group_label;
-```
-Debe devolver A–L con **6 partidos cada uno**. Luego, en `/calendar` y en Predicciones, el filtro Grupo A debe listar los partidos correctos (incluido Czech Republic vs Mexico).
-
-## Archivo a modificar
-
-- `supabase/functions/api-football-fixtures/index.ts` (solo `fetchTeamGroupMap`)
+- A day is considered "past" when every match in that day has `status === "finished"` or `status_detail` in `cancelledStatuses`. Use the existing `finalStatuses` / `cancelledStatuses` helpers from `@/lib/matchCalendar`.
+- After computing `groupedByDate`, derive three arrays from its entries (already sorted ascending by date thanks to the underlying query):
+  - `pastDays` = consecutive leading entries where the day is "past".
+  - `lastClosedDay` = `pastDays.pop()` (may be undefined).
+  - `upcomingDays` = the remaining entries.
+- Render with `<Collapsible>` from `@/components/ui/collapsible` (already in the project) wrapping `pastDays`. Trigger is a full-width button styled like the existing day header strip, with a chevron icon and the count of matches inside.
+- Keep `defaultOpen={false}` on the Collapsible; do **not** persist state — every visit re-collapses, matching the requested behavior.
+- The empty-state message ("No se encontraron partidos con estos filtros.") still applies when all three blocks are empty.
+- No changes to `MemberPredictionsView`, `LeaderboardTab`, or the demo equivalents — scope is limited to the private-group Predictions tab as requested.
