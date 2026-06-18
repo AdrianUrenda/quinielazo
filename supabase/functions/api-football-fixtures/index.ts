@@ -311,13 +311,18 @@ Deno.serve(async (req) => {
     ]);
 
     if (action === "sync-matches" && Array.isArray(fixtures?.response)) {
-      fixtures.response = await refreshStaleFixtures(apiKey, fixtures.response);
-    }
-
-    const responseBody: Record<string, unknown> = { fixtures, teamGroupMap, updatedAt: new Date().toISOString() };
-
-    if (action === "sync-matches") {
-      Object.assign(responseBody, await syncMatches(fixtures.response || [], teamGroupMap));
+      const allFixtures: any[] = fixtures.response;
+      const archived = computeArchivedDayKeys(allFixtures);
+      const activeFixtures = allFixtures.filter((f) => {
+        const iso = f?.fixture?.date;
+        if (!iso) return false;
+        return !archived.has(cdmxDayKey(iso));
+      });
+      const refreshed = await refreshStaleFixtures(apiKey, activeFixtures);
+      console.log(`sync-matches: total=${allFixtures.length} archivedDays=${archived.size} active=${activeFixtures.length}`);
+      Object.assign(responseBody, await syncMatches(refreshed, teamGroupMap));
+      (responseBody as any).archivedDays = archived.size;
+      (responseBody as any).activeFixtures = activeFixtures.length;
     }
 
 
