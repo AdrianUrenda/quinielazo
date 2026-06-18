@@ -310,6 +310,8 @@ Deno.serve(async (req) => {
       fetchTeamGroupMap(apiKey),
     ]);
 
+    const responseBody: Record<string, unknown> = { fixtures, teamGroupMap, updatedAt: new Date().toISOString() };
+
     if (action === "sync-matches" && Array.isArray(fixtures?.response)) {
       const allFixtures: any[] = fixtures.response;
       const archived = computeArchivedDayKeys(allFixtures);
