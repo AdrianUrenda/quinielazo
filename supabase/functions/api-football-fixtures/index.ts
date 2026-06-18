@@ -53,6 +53,44 @@ const fetchWorldCupFixtures = async (apiKey: string) => {
   return fixtures;
 };
 
+// The league/season aggregate endpoint is heavily cached upstream and can lag
+// behind reality (e.g. still reporting "1H" hours after FT). For any fixture
+// whose kickoff is more than STALE_THRESHOLD_MS in the past but is not yet
+// marked finished, re-fetch it by ID — that endpoint is always fresh.
+const STALE_THRESHOLD_MS = 2 * 60 * 60 * 1000; // 2 hours after kickoff
+
+const refreshStaleFixtures = async (apiKey: string, fixtures: any[]): Promise<any[]> => {
+  const now = Date.now();
+  const stale = fixtures.filter((f) => {
+    const status = f?.fixture?.status?.short ?? "NS";
+    if (FINISHED.has(status)) return false;
+    const kickoff = new Date(f?.fixture?.date ?? 0).getTime();
+    return Number.isFinite(kickoff) && kickoff > 0 && now - kickoff > STALE_THRESHOLD_MS;
+  });
+  if (stale.length === 0) return fixtures;
+
+  const replacements = new Map<number, any>();
+  await Promise.all(
+    stale.map(async (f) => {
+      const id = f?.fixture?.id;
+      if (!id) return;
+      try {
+        const res = await fetch(`${API_BASE_URL}/fixtures?id=${id}`, { headers: { "x-apisports-key": apiKey } });
+        const payload = await res.json();
+        if (!res.ok || hasApiErrors(payload)) return;
+        const fresh = payload?.response?.[0];
+        if (fresh?.fixture?.id === id) replacements.set(id, fresh);
+      } catch (error) {
+        console.error(`Failed to refresh fixture ${id}:`, error);
+      }
+    }),
+  );
+
+  if (replacements.size === 0) return fixtures;
+  return fixtures.map((f) => replacements.get(f?.fixture?.id) ?? f);
+};
+
+
 const fetchTeamGroupMap = async (apiKey: string): Promise<Record<string, string>> => {
   try {
     const response = await fetch(`${API_BASE_URL}/standings?league=${WORLD_CUP_LEAGUE_ID}&season=${WORLD_CUP_SEASON}`, {
@@ -239,11 +277,17 @@ Deno.serve(async (req) => {
       fetchWorldCupFixtures(apiKey),
       fetchTeamGroupMap(apiKey),
     ]);
+
+    if (action === "sync-matches" && Array.isArray(fixtures?.response)) {
+      fixtures.response = await refreshStaleFixtures(apiKey, fixtures.response);
+    }
+
     const responseBody: Record<string, unknown> = { fixtures, teamGroupMap, updatedAt: new Date().toISOString() };
 
     if (action === "sync-matches") {
       Object.assign(responseBody, await syncMatches(fixtures.response || [], teamGroupMap));
     }
+
 
     return new Response(JSON.stringify(responseBody), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
