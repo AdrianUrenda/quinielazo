@@ -11,6 +11,38 @@ const WORLD_CUP_LEAGUE_ID = "1";
 const WORLD_CUP_SEASON = "2026";
 const FINISHED = new Set(["FT", "AET", "PEN"]);
 const LIVE = new Set(["1H", "HT", "2H", "ET", "BT", "P", "LIVE"]);
+const TERMINAL = new Set(["FT", "AET", "PEN", "PST", "CANC", "ABD", "AWD", "WO"]);
+
+// Group fixtures by CDMX date key, mirroring the "jornada" grouping used in
+// the Predictions tab. We skip fully-closed past days except the most recent
+// one, so sync stays light as the tournament progresses.
+const cdmxDateKeyFormatter = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "America/Mexico_City",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+const cdmxDayKey = (iso: string) => cdmxDateKeyFormatter.format(new Date(iso));
+
+const computeArchivedDayKeys = (fixtures: any[]): Set<string> => {
+  const byDay = new Map<string, any[]>();
+  for (const f of fixtures) {
+    const iso = f?.fixture?.date;
+    if (!iso) continue;
+    const key = cdmxDayKey(iso);
+    if (!byDay.has(key)) byDay.set(key, []);
+    byDay.get(key)!.push(f);
+  }
+  const sortedKeys = [...byDay.keys()].sort();
+  const closedKeys: string[] = [];
+  for (const key of sortedKeys) {
+    const dayFixtures = byDay.get(key)!;
+    const allClosed = dayFixtures.every((f) => TERMINAL.has(f?.fixture?.status?.short ?? "NS"));
+    if (allClosed) closedKeys.push(key);
+  }
+  closedKeys.pop(); // keep the most recent closed day in scope
+  return new Set(closedKeys);
+};
 
 const hasApiErrors = (payload: { errors?: unknown }) => {
   if (!payload?.errors) return false;
@@ -278,14 +310,21 @@ Deno.serve(async (req) => {
       fetchTeamGroupMap(apiKey),
     ]);
 
-    if (action === "sync-matches" && Array.isArray(fixtures?.response)) {
-      fixtures.response = await refreshStaleFixtures(apiKey, fixtures.response);
-    }
-
     const responseBody: Record<string, unknown> = { fixtures, teamGroupMap, updatedAt: new Date().toISOString() };
 
-    if (action === "sync-matches") {
-      Object.assign(responseBody, await syncMatches(fixtures.response || [], teamGroupMap));
+    if (action === "sync-matches" && Array.isArray(fixtures?.response)) {
+      const allFixtures: any[] = fixtures.response;
+      const archived = computeArchivedDayKeys(allFixtures);
+      const activeFixtures = allFixtures.filter((f) => {
+        const iso = f?.fixture?.date;
+        if (!iso) return false;
+        return !archived.has(cdmxDayKey(iso));
+      });
+      const refreshed = await refreshStaleFixtures(apiKey, activeFixtures);
+      console.log(`sync-matches: total=${allFixtures.length} archivedDays=${archived.size} active=${activeFixtures.length}`);
+      Object.assign(responseBody, await syncMatches(refreshed, teamGroupMap));
+      (responseBody as any).archivedDays = archived.size;
+      (responseBody as any).activeFixtures = activeFixtures.length;
     }
 
 
