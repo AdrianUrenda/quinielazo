@@ -93,11 +93,14 @@ const getStage = (round?: string | null) => {
   return "all";
 };
 
-const getGroup = (round?: string | null, teamGroupMap?: Record<string, string> | null, homeTeam?: string | null, awayTeam?: string | null) =>
-  round?.match(/group\s+([A-L])/i)?.[1]?.toUpperCase()
-  || (teamGroupMap && homeTeam ? teamGroupMap[homeTeam]?.toUpperCase() : undefined)
-  || (teamGroupMap && awayTeam ? teamGroupMap[awayTeam]?.toUpperCase() : undefined)
-  || null;
+const getGroup = (round?: string | null, teamGroupMap?: Record<string, string> | null, homeTeam?: string | null, awayTeam?: string | null) => {
+  // Only group-stage fixtures should resolve to a "Grupo X" label.
+  if (getStage(round) !== "group") return null;
+  return round?.match(/group\s+([A-L])\b/i)?.[1]?.toUpperCase()
+    || (teamGroupMap && homeTeam ? teamGroupMap[homeTeam]?.toUpperCase() : undefined)
+    || (teamGroupMap && awayTeam ? teamGroupMap[awayTeam]?.toUpperCase() : undefined)
+    || null;
+};
 
 const getStageLabel = (round?: string | null) => {
   const stage = getStage(round);
