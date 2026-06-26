@@ -127,8 +127,12 @@ const PredictionsTab = ({ groupId, userId }: Props) => {
 
   const filtered = useMemo(() => {
     return (matches || []).filter((match) => {
-      if (stageFilter !== "all" && getStage(match.round_label, match.stage) !== stageFilter) return false;
-      if (groupFilter !== "all" && getGroup(match.round_label, match.group_label, teamGroupMap, match.home_team, match.away_team) !== groupFilter) return false;
+      const stage = getStage(match.round_label, match.stage);
+      if (stageFilter !== "all" && stage !== stageFilter) return false;
+      if (groupFilter !== "all") {
+        if (stage !== "group") return false;
+        if (getGroup(match.round_label, match.group_label, teamGroupMap, match.home_team, match.away_team, match.stage) !== groupFilter) return false;
+      }
       return true;
     });
   }, [matches, stageFilter, groupFilter, teamGroupMap]);
@@ -411,7 +415,7 @@ const PointsBadge = ({ pred }: { pred?: any }) => {
 const PredictionMatchCard = ({ match, index, pred, canPredict, getScore, setScore, teamGroupMap }: any) => {
   const statusDetail = match.status_detail || (match.status === "finished" ? "FT" : "NS");
   const badge = getStatusBadge(match.status, statusDetail);
-  const group = getGroup(match.round_label, match.group_label, teamGroupMap, match.home_team, match.away_team);
+  const group = getGroup(match.round_label, match.group_label, teamGroupMap, match.home_team, match.away_team, match.stage);
   const homeName = match.home_team || "TBD";
   const awayName = match.away_team || "TBD";
   const hasFinalScore = (match.status === "finished" || finalStatuses.has(statusDetail)) && match.home_score !== null && match.away_score !== null;

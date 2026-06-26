@@ -198,12 +198,13 @@ const syncMatches = async (fixtures: any[], teamGroupMap: Record<string, string>
 
   const { data: existingMatches, error: existingError } = await supabase
     .from("matches")
-    .select("id, match_number, api_fixture_id");
+    .select("id, match_number, api_fixture_id, home_team, away_team, status");
   if (existingError) throw existingError;
 
   const byFixtureId = new Map((existingMatches || []).filter((m: any) => m.api_fixture_id).map((m: any) => [m.api_fixture_id, m]));
   const byMatchNumber = new Map((existingMatches || []).map((m: any) => [m.match_number, m]));
   let nextMatchNumber = Math.max(0, ...(existingMatches || []).map((m: any) => m.match_number || 0)) + 1;
+  let stalePredictionsCleared = 0;
 
   for (const [index, fixture] of sortedFixtures.entries()) {
     const apiFixtureId = fixture?.fixture?.id;
@@ -242,6 +243,24 @@ const syncMatches = async (fixtures: any[], teamGroupMap: Record<string, string>
       last_synced_at: new Date().toISOString(),
     };
 
+    // If the fixture's teams just got resolved (placeholder -> real team, or
+    // any team change) and the match hasn't started yet, purge stale
+    // predictions that were saved against the previous team assignment.
+    if (existing?.id && status === "upcoming") {
+      const prevHome = (existing.home_team || "").trim();
+      const prevAway = (existing.away_team || "").trim();
+      const teamsChanged = (prevHome && prevHome !== homeName) || (prevAway && prevAway !== awayName);
+      if (teamsChanged) {
+        const { count, error: delError } = await supabase
+          .from("predictions")
+          .delete({ count: "exact" })
+          .eq("match_id", existing.id);
+        if (delError) throw delError;
+        stalePredictionsCleared += count ?? 0;
+        console.log(`Cleared ${count ?? 0} stale predictions for match ${existing.id} (${prevHome} vs ${prevAway} -> ${homeName} vs ${awayName})`);
+      }
+    }
+
     const result = existing?.id
       ? await supabase.from("matches").update(row).eq("id", existing.id).select("id").single()
       : await supabase.from("matches").insert(row).select("id").single();
@@ -253,7 +272,7 @@ const syncMatches = async (fixtures: any[], teamGroupMap: Record<string, string>
     }
   }
 
-  return { fixturesSynced, predictionsScored };
+  return { fixturesSynced, predictionsScored, stalePredictionsCleared };
 };
 
 Deno.serve(async (req) => {
