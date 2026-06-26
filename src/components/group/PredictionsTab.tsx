@@ -2,7 +2,7 @@
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { AlertCircle, ChevronDown, Filter, History, Lock, MapPin, Radio, RefreshCw, Save, Trophy } from "lucide-react";
+import { AlertCircle, ChevronDown, Filter, History, Info, Lock, MapPin, Radio, RefreshCw, Save, Trophy } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
