@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, MapPin, Trophy } from "lucide-react";
 import { motion } from "framer-motion";
-import { finalStatuses, formatMexicoDateTime, getGroup, getStage, getStageLabel, getStatusBadge } from "@/lib/matchCalendar";
+import { finalStatuses, liveStatuses, formatMexicoDateTime, getGroup, getStage, getStageLabel, getStatusBadge } from "@/lib/matchCalendar";
 
 interface Props {
   groupId: string;
