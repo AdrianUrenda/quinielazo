@@ -78,6 +78,8 @@ const MemberPredictionsView = ({ groupId, memberId, memberName, onBack }: Props)
             const badge = getStatusBadge(match.status, statusDetail);
             const group = getGroup(match.round_label, match.group_label);
             const hasFinalScore = (match.status === "finished" || finalStatuses.has(statusDetail)) && match.home_score !== null && match.away_score !== null;
+            const isLive = (match.status === "live" || liveStatuses.has(statusDetail)) && match.home_score !== null && match.away_score !== null;
+            const showScore = hasFinalScore || isLive;
             return (
               <motion.div key={match.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }} className="card-elevated rounded-xl p-4 sm:p-5">
                 <div className="mb-3 flex items-center justify-between gap-3">
