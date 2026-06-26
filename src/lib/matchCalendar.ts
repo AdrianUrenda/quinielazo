@@ -66,12 +66,20 @@ export const getGroup = (
   teamGroupMap?: Record<string, string> | null,
   homeTeam?: string | null,
   awayTeam?: string | null,
-) =>
-  groupLabel?.toUpperCase() ||
-  round?.match(/group\s+([A-L])/i)?.[1]?.toUpperCase() ||
-  (teamGroupMap && homeTeam ? teamGroupMap[homeTeam]?.toUpperCase() : undefined) ||
-  (teamGroupMap && awayTeam ? teamGroupMap[awayTeam]?.toUpperCase() : undefined) ||
-  null;
+  fallbackStage?: string | null,
+) => {
+  // Only resolve a group letter for group-stage matches; knockout fixtures must
+  // never inherit a "Grupo X" label from their teams' original group.
+  const stage = getStage(round, fallbackStage);
+  if (stage !== "group" && stage !== "all") return null;
+  return (
+    groupLabel?.toUpperCase() ||
+    round?.match(/group\s+([A-L])\b/i)?.[1]?.toUpperCase() ||
+    (stage === "group" && teamGroupMap && homeTeam ? teamGroupMap[homeTeam]?.toUpperCase() : undefined) ||
+    (stage === "group" && teamGroupMap && awayTeam ? teamGroupMap[awayTeam]?.toUpperCase() : undefined) ||
+    null
+  );
+};
 
 export const getStageLabel = (round?: string | null, fallbackStage?: string | null) => {
   const stage = getStage(round, fallbackStage);
