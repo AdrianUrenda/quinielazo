@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, MapPin, Trophy } from "lucide-react";
 import { motion } from "framer-motion";
-import { finalStatuses, formatMexicoDateTime, getStatusBadge } from "@/lib/matchCalendar";
+import { finalStatuses, liveStatuses, formatMexicoDateTime, getStatusBadge } from "@/lib/matchCalendar";
 
 interface Props {
   memberId: string;
@@ -83,6 +83,8 @@ const DemoMemberPredictionsView = ({ memberId, memberName, onBack }: Props) => {
             const statusDetail = match.status_detail || (match.status === "finished" ? "FT" : "NS");
             const badge = getStatusBadge(match.status, statusDetail);
             const hasFinalScore = (match.status === "finished" || finalStatuses.has(statusDetail)) && match.home_score !== null && match.away_score !== null;
+            const isLive = (match.status === "live" || liveStatuses.has(statusDetail)) && match.home_score !== null && match.away_score !== null;
+            const showScore = hasFinalScore || isLive;
             return (
               <motion.div key={match.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }} className="card-elevated rounded-xl p-4 sm:p-5">
                 <div className="mb-3 flex items-center justify-between gap-3">
@@ -99,8 +101,8 @@ const DemoMemberPredictionsView = ({ memberId, memberName, onBack }: Props) => {
                     <TeamLogo logo={match.home_team_logo} name={match.home_team} />
                   </span>
                   <div className="text-center">
-                    {hasFinalScore ? (
-                      <span className="font-display text-2xl text-foreground sm:text-3xl">{match.home_score} – {match.away_score}</span>
+                    {showScore ? (
+                      <span className={`font-display text-2xl sm:text-3xl ${isLive && !hasFinalScore ? "text-destructive" : "text-foreground"}`}>{match.home_score} – {match.away_score}</span>
                     ) : (
                       <span className="rounded-full bg-muted px-3 py-1 text-xs font-display text-muted-foreground">{formatMexicoDateTime(match.kickoff_utc)}</span>
                     )}
