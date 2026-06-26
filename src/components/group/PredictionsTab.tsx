@@ -2,7 +2,7 @@
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { AlertCircle, ChevronDown, Filter, History, Lock, MapPin, Radio, RefreshCw, Save, Trophy } from "lucide-react";
+import { AlertCircle, ChevronDown, Filter, History, Info, Lock, MapPin, Radio, RefreshCw, Save, Trophy } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -241,6 +241,12 @@ const PredictionsTab = ({ groupId, userId }: Props) => {
 
   return (
     <div className="space-y-5">
+      <div className="rounded-xl border border-gold/30 bg-gold/10 p-3 flex items-start gap-2">
+        <Trophy className="h-4 w-4 shrink-0 text-gold mt-0.5" />
+        <p className="text-xs sm:text-sm font-body text-foreground leading-snug">
+          +3 pts si aciertas el marcador exacto · +1 pt si aciertas el resultado (ganador o empate). En fase eliminatoria, el marcador de la quiniela es al final del tiempo reglamentario (90 min o 120 min con prórroga). Los penales no cuentan.
+        </p>
+      </div>
       <div className="card-elevated rounded-2xl p-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
