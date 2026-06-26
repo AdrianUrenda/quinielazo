@@ -415,7 +415,7 @@ const PointsBadge = ({ pred }: { pred?: any }) => {
 const PredictionMatchCard = ({ match, index, pred, canPredict, getScore, setScore, teamGroupMap }: any) => {
   const statusDetail = match.status_detail || (match.status === "finished" ? "FT" : "NS");
   const badge = getStatusBadge(match.status, statusDetail);
-  const group = getGroup(match.round_label, match.group_label, teamGroupMap, match.home_team, match.away_team);
+  const group = getGroup(match.round_label, match.group_label, teamGroupMap, match.home_team, match.away_team, match.stage);
   const homeName = match.home_team || "TBD";
   const awayName = match.away_team || "TBD";
   const hasFinalScore = (match.status === "finished" || finalStatuses.has(statusDetail)) && match.home_score !== null && match.away_score !== null;
