@@ -6,13 +6,14 @@ import { useAuth } from "@/hooks/useAuth";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Trophy, Users, BarChart3, ClipboardList, ArrowLeft, Copy, Loader2, Settings } from "lucide-react";
+import { Trophy, Users, BarChart3, ClipboardList, ArrowLeft, Copy, Loader2, Settings, Bell } from "lucide-react";
 import { toast } from "sonner";
 import Navbar from "@/components/landing/Navbar";
 import Footer from "@/components/landing/Footer";
 import PredictionsTab from "@/components/group/PredictionsTab";
 import LeaderboardTab from "@/components/group/LeaderboardTab";
 import MembersTab from "@/components/group/MembersTab";
+import LiveTab from "@/components/group/LiveTab";
 import MemberPredictionsView from "@/components/group/MemberPredictionsView";
 import EditGroupModal from "@/components/group/EditGroupModal";
 
@@ -149,9 +150,15 @@ const GroupDashboard = () => {
             </div>
           ) : (
             <Tabs defaultValue="predictions" className="space-y-4">
-              <TabsList className="grid w-full grid-cols-3 h-12">
+              <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 h-auto sm:h-12 gap-1 p-1">
                 <TabsTrigger value="predictions" className="font-display tracking-wider text-xs gap-1.5">
                   <ClipboardList className="w-4 h-4" /> PREDICCIONES
+                </TabsTrigger>
+                <TabsTrigger
+                  value="live"
+                  className="font-display tracking-wider text-xs gap-1.5 bg-destructive/10 text-destructive border border-destructive/30 data-[state=active]:bg-destructive data-[state=active]:text-destructive-foreground data-[state=active]:border-destructive"
+                >
+                  <Bell className="w-4 h-4 animate-pulse" /> EN VIVO
                 </TabsTrigger>
                 <TabsTrigger value="leaderboard" className="font-display tracking-wider text-xs gap-1.5">
                   <BarChart3 className="w-4 h-4" /> POSICIONES
@@ -164,6 +171,11 @@ const GroupDashboard = () => {
               <TabsContent value="predictions">
                 <PredictionsTab groupId={group.id} userId={user.id} />
               </TabsContent>
+
+              <TabsContent value="live">
+                <LiveTab groupId={group.id} currentUserId={user.id} />
+              </TabsContent>
+
 
               <TabsContent value="leaderboard">
                 <LeaderboardTab groupId={group.id} currentUserId={user.id} />
