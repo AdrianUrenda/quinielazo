@@ -91,9 +91,15 @@ const DemoGroup = () => {
 
           {/* Tabs */}
           <Tabs defaultValue="predictions" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-3 h-12">
+            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 h-auto sm:h-12 gap-1 p-1">
               <TabsTrigger value="predictions" className="font-display tracking-wider text-xs gap-1.5">
                 <ClipboardList className="w-4 h-4" /> PREDICCIONES
+              </TabsTrigger>
+              <TabsTrigger
+                value="live"
+                className="font-display tracking-wider text-xs gap-1.5 bg-destructive/10 text-destructive border border-destructive/30 data-[state=active]:bg-destructive data-[state=active]:text-destructive-foreground data-[state=active]:border-destructive"
+              >
+                <Bell className="w-4 h-4 animate-pulse" /> EN VIVO
               </TabsTrigger>
               <TabsTrigger value="leaderboard" className="font-display tracking-wider text-xs gap-1.5">
                 <BarChart3 className="w-4 h-4" /> POSICIONES
@@ -106,6 +112,11 @@ const DemoGroup = () => {
             <TabsContent value="predictions">
               <DemoPredictionsTab userId={user.id} />
             </TabsContent>
+
+            <TabsContent value="live">
+              <DemoLiveTab currentUserId={user.id} />
+            </TabsContent>
+
 
             <TabsContent value="leaderboard">
               <DemoLeaderboardTab currentUserId={user.id} />
