@@ -6,12 +6,13 @@ import { useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { BarChart3, ClipboardList, ArrowLeft, Users, Loader2 } from "lucide-react";
+import { BarChart3, ClipboardList, ArrowLeft, Users, Loader2, Bell } from "lucide-react";
 import Navbar from "@/components/landing/Navbar";
 import Footer from "@/components/landing/Footer";
 import DemoPredictionsTab from "@/components/demo/DemoPredictionsTab";
 import DemoLeaderboardTab from "@/components/demo/DemoLeaderboardTab";
 import DemoMembersTab from "@/components/demo/DemoMembersTab";
+import DemoLiveTab from "@/components/demo/DemoLiveTab";
 import DemoMemberPredictionsView from "@/components/demo/DemoMemberPredictionsView";
 
 const DemoGroup = () => {
