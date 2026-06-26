@@ -127,8 +127,12 @@ const PredictionsTab = ({ groupId, userId }: Props) => {
 
   const filtered = useMemo(() => {
     return (matches || []).filter((match) => {
-      if (stageFilter !== "all" && getStage(match.round_label, match.stage) !== stageFilter) return false;
-      if (groupFilter !== "all" && getGroup(match.round_label, match.group_label, teamGroupMap, match.home_team, match.away_team) !== groupFilter) return false;
+      const stage = getStage(match.round_label, match.stage);
+      if (stageFilter !== "all" && stage !== stageFilter) return false;
+      if (groupFilter !== "all") {
+        if (stage !== "group") return false;
+        if (getGroup(match.round_label, match.group_label, teamGroupMap, match.home_team, match.away_team, match.stage) !== groupFilter) return false;
+      }
       return true;
     });
   }, [matches, stageFilter, groupFilter, teamGroupMap]);
