@@ -96,8 +96,8 @@ const MemberPredictionsView = ({ groupId, memberId, memberName, onBack }: Props)
                     <TeamLogo logo={match.home_team_logo} name={match.home_team} />
                   </span>
                   <div className="text-center">
-                    {hasFinalScore ? (
-                      <span className="font-display text-2xl text-foreground sm:text-3xl">{match.home_score} – {match.away_score}</span>
+                    {showScore ? (
+                      <span className={`font-display text-2xl sm:text-3xl ${isLive && !hasFinalScore ? "text-destructive" : "text-foreground"}`}>{match.home_score} – {match.away_score}</span>
                     ) : (
                       <span className="rounded-full bg-muted px-3 py-1 text-xs font-display text-muted-foreground">{formatMexicoDateTime(match.kickoff_utc)}</span>
                     )}
