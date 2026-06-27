@@ -311,10 +311,12 @@ Deno.serve(async (req) => {
     }
 
     let action = "fixtures";
+    let force = false;
     if (req.method === "POST") {
       try {
         const body = await req.json();
         action = body?.action || action;
+        force = Boolean(body?.force);
       } catch {
         action = "fixtures";
       }
