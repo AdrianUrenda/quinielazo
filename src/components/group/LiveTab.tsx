@@ -1,10 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
-import { Radio, Trophy } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Radio, RefreshCw, Trophy } from "lucide-react";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
 import { liveStatuses, getGroup, getStage, getStageLabel, getStatusBadge } from "@/lib/matchCalendar";
 
 type PublicProfile = { id: string; display_name: string; avatar_url: string | null };
@@ -28,6 +30,7 @@ const PointsHint = ({ pred, home, away }: { pred: { predicted_home_score: number
 };
 
 const LiveTab = ({ groupId, currentUserId }: Props) => {
+  const queryClient = useQueryClient();
   const { data: matches } = useQuery({
     queryKey: ["live-matches"],
     queryFn: async () => {
@@ -39,6 +42,24 @@ const LiveTab = ({ groupId, currentUserId }: Props) => {
       return (data || []) as any[];
     },
     refetchInterval: 30_000,
+  });
+
+  const syncMatches = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.functions.invoke("api-football-fixtures", {
+        body: { action: "sync-matches" },
+      });
+      if (error) throw error;
+      return data as { fixturesSynced?: number };
+    },
+    onSuccess: (data) => {
+      toast.success(`Resultados actualizados: ${data.fixturesSynced ?? 0} partidos`);
+      queryClient.invalidateQueries({ queryKey: ["live-matches"] });
+      queryClient.invalidateQueries({ queryKey: ["live-predictions"] });
+      queryClient.invalidateQueries({ queryKey: ["matches-all-api-football"] });
+      queryClient.invalidateQueries({ queryKey: ["leaderboard", groupId] });
+    },
+    onError: () => toast.error("No pudimos actualizar API-Football. Intenta de nuevo."),
   });
 
   const liveMatches = useMemo(
@@ -112,14 +133,26 @@ const LiveTab = ({ groupId, currentUserId }: Props) => {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2">
-        <span className="relative flex h-2.5 w-2.5">
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-destructive opacity-75" />
-          <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-destructive" />
-        </span>
-        <span className="text-xs font-display tracking-wider text-destructive">
-          {liveMatches.length} {liveMatches.length === 1 ? "PARTIDO EN VIVO" : "PARTIDOS EN VIVO"} · ACTUALIZA CADA 30s
-        </span>
+      <div className="flex flex-col gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-2">
+          <span className="relative flex h-2.5 w-2.5">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-destructive opacity-75" />
+            <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-destructive" />
+          </span>
+          <span className="text-xs font-display tracking-wider text-destructive">
+            {liveMatches.length} {liveMatches.length === 1 ? "PARTIDO EN VIVO" : "PARTIDOS EN VIVO"} · ACTUALIZA CADA 30s
+          </span>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-2 border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+          onClick={() => syncMatches.mutate()}
+          disabled={syncMatches.isPending}
+        >
+          <RefreshCw className={`h-3.5 w-3.5 ${syncMatches.isPending ? "animate-spin" : ""}`} />
+          Actualizar resultados
+        </Button>
       </div>
 
       {liveMatches.map((match, idx) => {
