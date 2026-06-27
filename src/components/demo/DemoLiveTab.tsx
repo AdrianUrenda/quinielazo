@@ -38,6 +38,7 @@ const PointsHint = ({ pred, home, away }: { pred: { predicted_home_score: number
 };
 
 const DemoLiveTab = ({ currentUserId }: Props) => {
+  const queryClient = useQueryClient();
   const { data: matches } = useQuery({
     queryKey: ["demo-live-matches"],
     queryFn: async () => {
@@ -46,6 +47,22 @@ const DemoLiveTab = ({ currentUserId }: Props) => {
       return (data || []) as any[];
     },
     refetchInterval: 30_000,
+  });
+
+  const syncLiguilla = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.functions.invoke("demo-sync", { body: { action: "sync-liguilla" } });
+      if (error) throw error;
+      return data as { fixturesSynced?: number };
+    },
+    onSuccess: (data) => {
+      toast.success(`Resultados actualizados: ${data.fixturesSynced ?? 0} partidos`);
+      queryClient.invalidateQueries({ queryKey: ["demo-live-matches"] });
+      queryClient.invalidateQueries({ queryKey: ["demo-live-predictions"] });
+      queryClient.invalidateQueries({ queryKey: ["demo-matches"] });
+      queryClient.invalidateQueries({ queryKey: ["demo-leaderboard"] });
+    },
+    onError: () => toast.error("No pudimos actualizar la Liguilla. Intenta de nuevo."),
   });
 
   const liveMatches = useMemo(
