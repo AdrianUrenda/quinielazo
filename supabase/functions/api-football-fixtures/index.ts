@@ -202,7 +202,6 @@ const syncMatches = async (fixtures: any[], teamGroupMap: Record<string, string>
   if (existingError) throw existingError;
 
   const byFixtureId = new Map((existingMatches || []).filter((m: any) => m.api_fixture_id).map((m: any) => [m.api_fixture_id, m]));
-  const byMatchNumber = new Map((existingMatches || []).map((m: any) => [m.match_number, m]));
   // Placeholder knockout rows seeded without api_fixture_id (e.g. "2A vs 2B").
   // We claim them by (stage, kickoff_utc) so a real fixture binds to the placeholder
   // row instead of inserting a duplicate alongside it.
@@ -215,20 +214,21 @@ const syncMatches = async (fixtures: any[], teamGroupMap: Record<string, string>
   let nextMatchNumber = Math.max(0, ...(existingMatches || []).map((m: any) => m.match_number || 0)) + 1;
   let stalePredictionsCleared = 0;
 
-  for (const [index, fixture] of sortedFixtures.entries()) {
+  for (const fixture of sortedFixtures) {
     const apiFixtureId = fixture?.fixture?.id;
     if (!apiFixtureId) continue;
 
     const round = fixture?.league?.round ?? null;
     const statusDetail = fixture?.fixture?.status?.short ?? "NS";
     const status = normalizeStatus(statusDetail);
-    const matchNumber = index + 1;
     const stage = getStage(round);
     const kickoffIso = fixture?.fixture?.date ? new Date(fixture.fixture.date).toISOString() : null;
     const placeholderKey = kickoffIso ? `${stage}|${kickoffIso}` : null;
+    // CRITICAL: match ONLY by api_fixture_id or (stage, kickoff_utc) placeholder.
+    // Never match by positional match_number — that previously caused group fixtures
+    // to be overwritten with knockout placeholders when API ordering shifted.
     const existing =
       byFixtureId.get(apiFixtureId) ||
-      byMatchNumber.get(matchNumber) ||
       (placeholderKey ? placeholderByStageTime.get(placeholderKey) : undefined);
     const homeScore = getScore(fixture, "home", status);
     const awayScore = getScore(fixture, "away", status);
