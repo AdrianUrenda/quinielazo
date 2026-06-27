@@ -173,16 +173,31 @@ const scorePredictionsForMatch = async (supabase: any, matchId: string, homeScor
   return scored;
 };
 
+const fetchVaultCronSecret = async (): Promise<string | null> => {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!supabaseUrl || !serviceRoleKey) return null;
+  try {
+    const client = createClient(supabaseUrl, serviceRoleKey);
+    const { data, error } = await client.rpc("_cron_secret");
+    if (error) return null;
+    return typeof data === "string" && data.length > 0 ? data : null;
+  } catch {
+    return null;
+  }
+};
+
 const requireAuthenticatedCaller = async (authHeader: string | null) => {
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
   const cronSecret = Deno.env.get("CRON_SECRET");
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   if (!authHeader) return false;
-  // Allow scheduled invocations (pg_cron) authenticated with CRON_SECRET
   if (cronSecret && authHeader === `Bearer ${cronSecret}`) return true;
-  // Allow direct service-role invocations (admin recovery/maintenance)
   if (serviceRoleKey && authHeader === `Bearer ${serviceRoleKey}`) return true;
+  // Also accept the CRON_SECRET stored in vault (kept in sync with pg_cron jobs)
+  const vaultSecret = await fetchVaultCronSecret();
+  if (vaultSecret && authHeader === `Bearer ${vaultSecret}`) return true;
   if (!supabaseUrl || !anonKey) return false;
   const authClient = createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: authHeader } } });
   const { data, error } = await authClient.auth.getUser();
