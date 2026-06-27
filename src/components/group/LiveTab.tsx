@@ -30,6 +30,7 @@ const PointsHint = ({ pred, home, away }: { pred: { predicted_home_score: number
 };
 
 const LiveTab = ({ groupId, currentUserId }: Props) => {
+  const queryClient = useQueryClient();
   const { data: matches } = useQuery({
     queryKey: ["live-matches"],
     queryFn: async () => {
@@ -41,6 +42,24 @@ const LiveTab = ({ groupId, currentUserId }: Props) => {
       return (data || []) as any[];
     },
     refetchInterval: 30_000,
+  });
+
+  const syncMatches = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.functions.invoke("api-football-fixtures", {
+        body: { action: "sync-matches" },
+      });
+      if (error) throw error;
+      return data as { fixturesSynced?: number };
+    },
+    onSuccess: (data) => {
+      toast.success(`Resultados actualizados: ${data.fixturesSynced ?? 0} partidos`);
+      queryClient.invalidateQueries({ queryKey: ["live-matches"] });
+      queryClient.invalidateQueries({ queryKey: ["live-predictions"] });
+      queryClient.invalidateQueries({ queryKey: ["matches-all-api-football"] });
+      queryClient.invalidateQueries({ queryKey: ["leaderboard", groupId] });
+    },
+    onError: () => toast.error("No pudimos actualizar API-Football. Intenta de nuevo."),
   });
 
   const liveMatches = useMemo(
