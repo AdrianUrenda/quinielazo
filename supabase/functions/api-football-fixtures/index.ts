@@ -239,7 +239,7 @@ const syncMatches = async (fixtures: any[], teamGroupMap: Record<string, string>
       : null;
     const row = {
       api_fixture_id: apiFixtureId,
-      match_number: existing?.match_number ?? matchNumber ?? nextMatchNumber++,
+      match_number: existing?.match_number ?? nextMatchNumber++,
       stage,
       group_label: derivedGroup,
       round_label: round,
