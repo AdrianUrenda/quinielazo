@@ -177,9 +177,12 @@ const requireAuthenticatedCaller = async (authHeader: string | null) => {
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
   const cronSecret = Deno.env.get("CRON_SECRET");
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   if (!authHeader) return false;
   // Allow scheduled invocations (pg_cron) authenticated with CRON_SECRET
   if (cronSecret && authHeader === `Bearer ${cronSecret}`) return true;
+  // Allow direct service-role invocations (admin recovery/maintenance)
+  if (serviceRoleKey && authHeader === `Bearer ${serviceRoleKey}`) return true;
   if (!supabaseUrl || !anonKey) return false;
   const authClient = createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: authHeader } } });
   const { data, error } = await authClient.auth.getUser();
@@ -202,7 +205,6 @@ const syncMatches = async (fixtures: any[], teamGroupMap: Record<string, string>
   if (existingError) throw existingError;
 
   const byFixtureId = new Map((existingMatches || []).filter((m: any) => m.api_fixture_id).map((m: any) => [m.api_fixture_id, m]));
-  const byMatchNumber = new Map((existingMatches || []).map((m: any) => [m.match_number, m]));
   // Placeholder knockout rows seeded without api_fixture_id (e.g. "2A vs 2B").
   // We claim them by (stage, kickoff_utc) so a real fixture binds to the placeholder
   // row instead of inserting a duplicate alongside it.
@@ -215,20 +217,21 @@ const syncMatches = async (fixtures: any[], teamGroupMap: Record<string, string>
   let nextMatchNumber = Math.max(0, ...(existingMatches || []).map((m: any) => m.match_number || 0)) + 1;
   let stalePredictionsCleared = 0;
 
-  for (const [index, fixture] of sortedFixtures.entries()) {
+  for (const fixture of sortedFixtures) {
     const apiFixtureId = fixture?.fixture?.id;
     if (!apiFixtureId) continue;
 
     const round = fixture?.league?.round ?? null;
     const statusDetail = fixture?.fixture?.status?.short ?? "NS";
     const status = normalizeStatus(statusDetail);
-    const matchNumber = index + 1;
     const stage = getStage(round);
     const kickoffIso = fixture?.fixture?.date ? new Date(fixture.fixture.date).toISOString() : null;
     const placeholderKey = kickoffIso ? `${stage}|${kickoffIso}` : null;
+    // CRITICAL: match ONLY by api_fixture_id or (stage, kickoff_utc) placeholder.
+    // Never match by positional match_number — that previously caused group fixtures
+    // to be overwritten with knockout placeholders when API ordering shifted.
     const existing =
       byFixtureId.get(apiFixtureId) ||
-      byMatchNumber.get(matchNumber) ||
       (placeholderKey ? placeholderByStageTime.get(placeholderKey) : undefined);
     const homeScore = getScore(fixture, "home", status);
     const awayScore = getScore(fixture, "away", status);
@@ -239,7 +242,7 @@ const syncMatches = async (fixtures: any[], teamGroupMap: Record<string, string>
       : null;
     const row = {
       api_fixture_id: apiFixtureId,
-      match_number: existing?.match_number ?? matchNumber ?? nextMatchNumber++,
+      match_number: existing?.match_number ?? nextMatchNumber++,
       stage,
       group_label: derivedGroup,
       round_label: round,
@@ -311,10 +314,12 @@ Deno.serve(async (req) => {
     }
 
     let action = "fixtures";
+    let force = false;
     if (req.method === "POST") {
       try {
         const body = await req.json();
         action = body?.action || action;
+        force = Boolean(body?.force);
       } catch {
         action = "fixtures";
       }
@@ -347,17 +352,18 @@ Deno.serve(async (req) => {
 
     if (action === "sync-matches" && Array.isArray(fixtures?.response)) {
       const allFixtures: any[] = fixtures.response;
-      const archived = computeArchivedDayKeys(allFixtures);
-      const activeFixtures = allFixtures.filter((f) => {
+      const archived = force ? new Set<string>() : computeArchivedDayKeys(allFixtures);
+      const activeFixtures = force ? allFixtures : allFixtures.filter((f) => {
         const iso = f?.fixture?.date;
         if (!iso) return false;
         return !archived.has(cdmxDayKey(iso));
       });
-      const refreshed = await refreshStaleFixtures(apiKey, activeFixtures);
-      console.log(`sync-matches: total=${allFixtures.length} archivedDays=${archived.size} active=${activeFixtures.length}`);
+      const refreshed = force ? activeFixtures : await refreshStaleFixtures(apiKey, activeFixtures);
+      console.log(`sync-matches: force=${force} total=${allFixtures.length} archivedDays=${archived.size} active=${activeFixtures.length}`);
       Object.assign(responseBody, await syncMatches(refreshed, teamGroupMap));
       (responseBody as any).archivedDays = archived.size;
       (responseBody as any).activeFixtures = activeFixtures.length;
+      (responseBody as any).forced = force;
     }
 
 
