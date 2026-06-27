@@ -198,11 +198,20 @@ const syncMatches = async (fixtures: any[], teamGroupMap: Record<string, string>
 
   const { data: existingMatches, error: existingError } = await supabase
     .from("matches")
-    .select("id, match_number, api_fixture_id, home_team, away_team, status");
+    .select("id, match_number, api_fixture_id, home_team, away_team, status, stage, kickoff_utc");
   if (existingError) throw existingError;
 
   const byFixtureId = new Map((existingMatches || []).filter((m: any) => m.api_fixture_id).map((m: any) => [m.api_fixture_id, m]));
   const byMatchNumber = new Map((existingMatches || []).map((m: any) => [m.match_number, m]));
+  // Placeholder knockout rows seeded without api_fixture_id (e.g. "2A vs 2B").
+  // We claim them by (stage, kickoff_utc) so a real fixture binds to the placeholder
+  // row instead of inserting a duplicate alongside it.
+  const placeholderByStageTime = new Map<string, any>();
+  for (const m of existingMatches || []) {
+    if (!m.api_fixture_id && m.stage && m.kickoff_utc) {
+      placeholderByStageTime.set(`${m.stage}|${new Date(m.kickoff_utc).toISOString()}`, m);
+    }
+  }
   let nextMatchNumber = Math.max(0, ...(existingMatches || []).map((m: any) => m.match_number || 0)) + 1;
   let stalePredictionsCleared = 0;
 
@@ -214,10 +223,15 @@ const syncMatches = async (fixtures: any[], teamGroupMap: Record<string, string>
     const statusDetail = fixture?.fixture?.status?.short ?? "NS";
     const status = normalizeStatus(statusDetail);
     const matchNumber = index + 1;
-    const existing = byFixtureId.get(apiFixtureId) || byMatchNumber.get(matchNumber);
+    const stage = getStage(round);
+    const kickoffIso = fixture?.fixture?.date ? new Date(fixture.fixture.date).toISOString() : null;
+    const placeholderKey = kickoffIso ? `${stage}|${kickoffIso}` : null;
+    const existing =
+      byFixtureId.get(apiFixtureId) ||
+      byMatchNumber.get(matchNumber) ||
+      (placeholderKey ? placeholderByStageTime.get(placeholderKey) : undefined);
     const homeScore = getScore(fixture, "home", status);
     const awayScore = getScore(fixture, "away", status);
-    const stage = getStage(round);
     const homeName = fixture?.teams?.home?.name || "TBD";
     const awayName = fixture?.teams?.away?.name || "TBD";
     const derivedGroup = stage === "group"
