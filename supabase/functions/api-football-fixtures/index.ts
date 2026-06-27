@@ -367,17 +367,31 @@ Deno.serve(async (req) => {
 
     if (action === "sync-matches" && Array.isArray(fixtures?.response)) {
       const allFixtures: any[] = fixtures.response;
-      const archived = force ? new Set<string>() : computeArchivedDayKeys(allFixtures);
-      const activeFixtures = force ? allFixtures : allFixtures.filter((f) => {
-        const iso = f?.fixture?.date;
-        if (!iso) return false;
-        return !archived.has(cdmxDayKey(iso));
-      });
-      const refreshed = force ? activeFixtures : await refreshStaleFixtures(apiKey, activeFixtures);
-      console.log(`sync-matches: force=${force} total=${allFixtures.length} archivedDays=${archived.size} active=${activeFixtures.length}`);
-      Object.assign(responseBody, await syncMatches(refreshed, teamGroupMap));
-      (responseBody as any).archivedDays = archived.size;
-      (responseBody as any).activeFixtures = activeFixtures.length;
+      let candidate: any[];
+      let archivedCount = 0;
+      if (force) {
+        // Recovery mode: only process fixtures missing from DB (by api_fixture_id)
+        // to keep the worker within compute limits.
+        const { data: existing } = await createClient(
+          Deno.env.get("SUPABASE_URL")!,
+          Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+        ).from("matches").select("api_fixture_id");
+        const known = new Set((existing || []).map((m: any) => m.api_fixture_id).filter(Boolean));
+        candidate = allFixtures.filter((f) => f?.fixture?.id && !known.has(f.fixture.id));
+      } else {
+        const archived = computeArchivedDayKeys(allFixtures);
+        archivedCount = archived.size;
+        const activeFixtures = allFixtures.filter((f) => {
+          const iso = f?.fixture?.date;
+          if (!iso) return false;
+          return !archived.has(cdmxDayKey(iso));
+        });
+        candidate = await refreshStaleFixtures(apiKey, activeFixtures);
+      }
+      console.log(`sync-matches: force=${force} total=${allFixtures.length} archivedDays=${archivedCount} candidate=${candidate.length}`);
+      Object.assign(responseBody, await syncMatches(candidate, teamGroupMap));
+      (responseBody as any).archivedDays = archivedCount;
+      (responseBody as any).activeFixtures = candidate.length;
       (responseBody as any).forced = force;
     }
 
