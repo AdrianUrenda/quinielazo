@@ -36,12 +36,24 @@ const LeaderboardTab = ({ groupId, currentUserId }: Props) => {
         .in("id", userIds) as unknown as { data: PublicProfile[] | null; error: Error | null };
       if (pErr) throw pErr;
 
-      // Get predictions with points
-      const { data: predictions, error: predErr } = await supabase
-        .from("predictions")
-        .select("user_id, points_awarded")
-        .eq("group_id", groupId);
-      if (predErr) throw predErr;
+      // Get predictions with points — paginate to bypass the 1000-row default limit
+      const predictions: { user_id: string; points_awarded: number | null }[] = [];
+      const PAGE = 1000;
+      let from = 0;
+      // Loop until a page returns fewer than PAGE rows
+      // (covers groups with > 1000 total predictions across all members)
+      while (true) {
+        const { data: page, error: predErr } = await supabase
+          .from("predictions")
+          .select("user_id, points_awarded")
+          .eq("group_id", groupId)
+          .range(from, from + PAGE - 1);
+        if (predErr) throw predErr;
+        const rows = page || [];
+        predictions.push(...rows);
+        if (rows.length < PAGE) break;
+        from += PAGE;
+      }
 
       // Aggregate points
       const pointsMap = new Map<string, { points: number; count: number }>();
