@@ -33,11 +33,21 @@ const DemoLeaderboardTab = ({ currentUserId }: Props) => {
         .in("id", userIds) as unknown as { data: PublicProfile[] | null; error: Error | null };
       if (pErr) throw pErr;
 
-      // Get all demo predictions with points
-      const { data: predictions, error: predErr } = await supabase
-        .from("demo_predictions")
-        .select("user_id, points_awarded");
-      if (predErr) throw predErr;
+      // Get all demo predictions with points — paginate past the 1000-row default limit
+      const predictions: { user_id: string; points_awarded: number | null }[] = [];
+      const PAGE = 1000;
+      let from = 0;
+      while (true) {
+        const { data: page, error: predErr } = await supabase
+          .from("demo_predictions")
+          .select("user_id, points_awarded")
+          .range(from, from + PAGE - 1);
+        if (predErr) throw predErr;
+        const rows = (page || []) as any[];
+        predictions.push(...rows);
+        if (rows.length < PAGE) break;
+        from += PAGE;
+      }
 
       // Aggregate
       const statsMap = new Map<string, { points: number; exact: number; correct: number; total: number }>();
