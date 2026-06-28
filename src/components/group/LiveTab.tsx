@@ -159,11 +159,11 @@ const LiveTab = ({ groupId, currentUserId }: Props) => {
           variant="outline"
           size="sm"
           className="gap-2 border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
-          onClick={() => syncMatches.mutate()}
-          disabled={syncMatches.isPending}
+          onClick={() => syncLive.mutate()}
+          disabled={syncLive.isPending}
         >
-          <RefreshCw className={`h-3.5 w-3.5 ${syncMatches.isPending ? "animate-spin" : ""}`} />
-          Actualizar resultados
+          <RefreshCw className={`h-3.5 w-3.5 ${syncLive.isPending ? "animate-spin" : ""}`} />
+          Actualizar partidos
         </Button>
       </div>
 
