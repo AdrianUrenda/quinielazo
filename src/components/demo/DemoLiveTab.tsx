@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Radio, RefreshCw, Trophy } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
-import { liveStatuses, getStatusBadge } from "@/lib/matchCalendar";
+import { liveStatuses, finalStatuses, getStatusBadge } from "@/lib/matchCalendar";
 
 type PublicProfile = { id: string; display_name: string; avatar_url: string | null };
 
