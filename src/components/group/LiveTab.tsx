@@ -66,6 +66,7 @@ const LiveTab = ({ groupId, currentUserId }: Props) => {
     () =>
       (matches || []).filter((m) => {
         const detail = m.status_detail || "";
+        if (m.status === "finished" || finalStatuses.has(detail)) return false;
         return m.status === "live" || liveStatuses.has(detail);
       }),
     [matches],
