@@ -244,7 +244,7 @@ const LiveTab = ({ groupId, currentUserId }: Props) => {
                         <span className="font-display text-sm text-foreground tabular-nums shrink-0">
                           {p.predicted_home_score} - {p.predicted_away_score}
                         </span>
-                        <PointsHint pred={p} home={match.home_score} away={match.away_score} />
+                        <PointsHint pred={p} home={liveHome} away={liveAway} />
                       </div>
                     );
                   })}
