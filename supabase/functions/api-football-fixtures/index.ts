@@ -286,6 +286,12 @@ const syncMatches = async (fixtures: any[], teamGroupMap: Record<string, string>
       }
     }
 
+    // CRITICAL: never persist live (in-progress) scores. Only final scores
+    // are written to the DB. Live snapshots are returned by sync-live and
+    // displayed transiently in the UI without ever touching matches table.
+    const persistedHomeScore = status === "finished" ? homeScore : null;
+    const persistedAwayScore = status === "finished" ? awayScore : null;
+
     // For sealed rows, only write cosmetic columns the protect_sealed_matches
     // trigger allows. For everything else, write the full identity payload.
     const row = isSealed
@@ -312,8 +318,8 @@ const syncMatches = async (fixtures: any[], teamGroupMap: Record<string, string>
           city: fixture?.fixture?.venue?.city ?? "",
           status,
           status_detail: statusDetail,
-          home_score: homeScore,
-          away_score: awayScore,
+          home_score: persistedHomeScore,
+          away_score: persistedAwayScore,
           last_synced_at: new Date().toISOString(),
         };
 
@@ -402,6 +408,75 @@ Deno.serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+    }
+
+    if (action === "sync-live") {
+      const authHeader = req.headers.get("Authorization");
+      const isAuthenticated = await requireAuthenticatedCaller(authHeader);
+      if (!isAuthenticated) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+      const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+      const dbClient = createClient(supabaseUrl, serviceRoleKey);
+
+      const liveDetails = Array.from(LIVE);
+      const { data: liveRows } = await dbClient
+        .from("matches")
+        .select("id, api_fixture_id, status, status_detail")
+        .or(`status.eq.live,status_detail.in.(${liveDetails.join(",")})`);
+
+      const ids = (liveRows || [])
+        .map((m: any) => m.api_fixture_id)
+        .filter((x: number | null) => typeof x === "number");
+
+      if (ids.length === 0) {
+        return new Response(
+          JSON.stringify({ liveScores: [], fixturesSynced: 0, message: "No live matches" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+
+      const res = await fetch(`${API_BASE_URL}/fixtures?ids=${ids.join("-")}`, {
+        headers: { "x-apisports-key": apiKey },
+      });
+      const payload = await res.json();
+      if (!res.ok || hasApiErrors(payload)) {
+        throw new Error(`sync-live fetch failed: ${JSON.stringify(payload?.errors ?? payload)}`);
+      }
+
+      const fresh: any[] = payload?.response ?? [];
+
+      // Build transient live snapshot for the UI — never persisted as scores.
+      const liveScores = fresh.map((f) => {
+        const short = f?.fixture?.status?.short ?? "NS";
+        return {
+          api_fixture_id: f?.fixture?.id,
+          status: normalizeStatus(short),
+          status_detail: short,
+          home_score: f?.goals?.home ?? 0,
+          away_score: f?.goals?.away ?? 0,
+          elapsed: f?.fixture?.status?.elapsed ?? null,
+        };
+      });
+
+      // For any fixture that has actually finished, run the normal sync so it
+      // gets sealed with the final score and predictions are scored.
+      const finishedFresh = fresh.filter((f) => FINISHED.has(f?.fixture?.status?.short ?? ""));
+      let syncResult: any = { fixturesSynced: 0, predictionsScored: 0 };
+      if (finishedFresh.length > 0) {
+        const teamGroupMap = await fetchTeamGroupMap(apiKey);
+        syncResult = await syncMatches(finishedFresh, teamGroupMap);
+      }
+
+      return new Response(
+        JSON.stringify({ liveScores, ...syncResult, updatedAt: new Date().toISOString() }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
 
     if (action === "team-groups") {

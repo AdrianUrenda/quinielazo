@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
@@ -31,6 +31,8 @@ const PointsHint = ({ pred, home, away }: { pred: { predicted_home_score: number
 
 const LiveTab = ({ groupId, currentUserId }: Props) => {
   const queryClient = useQueryClient();
+  const [liveOverlay, setLiveOverlay] = useState<Record<number, { home_score: number; away_score: number; status_detail: string }>>({});
+
   const { data: matches } = useQuery({
     queryKey: ["live-matches"],
     queryFn: async () => {
@@ -44,22 +46,31 @@ const LiveTab = ({ groupId, currentUserId }: Props) => {
     refetchInterval: 30_000,
   });
 
-  const syncMatches = useMutation({
+  const syncLive = useMutation({
     mutationFn: async () => {
       const { data, error } = await supabase.functions.invoke("api-football-fixtures", {
-        body: { action: "sync-matches" },
+        body: { action: "sync-live" },
       });
       if (error) throw error;
-      return data as { fixturesSynced?: number };
+      return data as { liveScores?: Array<{ api_fixture_id: number; home_score: number; away_score: number; status_detail: string }>; fixturesSynced?: number };
     },
     onSuccess: (data) => {
-      toast.success(`Resultados actualizados: ${data.fixturesSynced ?? 0} partidos`);
-      queryClient.invalidateQueries({ queryKey: ["live-matches"] });
-      queryClient.invalidateQueries({ queryKey: ["live-predictions"] });
-      queryClient.invalidateQueries({ queryKey: ["matches-all-api-football"] });
-      queryClient.invalidateQueries({ queryKey: ["leaderboard", groupId] });
+      const map: Record<number, { home_score: number; away_score: number; status_detail: string }> = {};
+      (data.liveScores || []).forEach((s) => {
+        map[s.api_fixture_id] = { home_score: s.home_score, away_score: s.away_score, status_detail: s.status_detail };
+      });
+      setLiveOverlay(map);
+      const count = (data.liveScores || []).length;
+      toast.success(count > 0 ? `${count} ${count === 1 ? "partido actualizado" : "partidos actualizados"}` : "No hay partidos en vivo");
+      // If any match sealed (finished), refresh DB-backed views.
+      if ((data.fixturesSynced ?? 0) > 0) {
+        queryClient.invalidateQueries({ queryKey: ["live-matches"] });
+        queryClient.invalidateQueries({ queryKey: ["live-predictions"] });
+        queryClient.invalidateQueries({ queryKey: ["matches-all-api-football"] });
+        queryClient.invalidateQueries({ queryKey: ["leaderboard", groupId] });
+      }
     },
-    onError: () => toast.error("No pudimos actualizar API-Football. Intenta de nuevo."),
+    onError: () => toast.error("No pudimos actualizar los partidos en vivo. Intenta de nuevo."),
   });
 
   const liveMatches = useMemo(
@@ -148,16 +159,19 @@ const LiveTab = ({ groupId, currentUserId }: Props) => {
           variant="outline"
           size="sm"
           className="gap-2 border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
-          onClick={() => syncMatches.mutate()}
-          disabled={syncMatches.isPending}
+          onClick={() => syncLive.mutate()}
+          disabled={syncLive.isPending}
         >
-          <RefreshCw className={`h-3.5 w-3.5 ${syncMatches.isPending ? "animate-spin" : ""}`} />
-          Actualizar resultados
+          <RefreshCw className={`h-3.5 w-3.5 ${syncLive.isPending ? "animate-spin" : ""}`} />
+          Actualizar partidos
         </Button>
       </div>
 
       {liveMatches.map((match, idx) => {
-        const statusDetail = match.status_detail || "LIVE";
+        const overlay = match.api_fixture_id ? liveOverlay[match.api_fixture_id] : undefined;
+        const liveHome = overlay?.home_score ?? match.home_score ?? 0;
+        const liveAway = overlay?.away_score ?? match.away_score ?? 0;
+        const statusDetail = overlay?.status_detail || match.status_detail || "LIVE";
         const badge = getStatusBadge(match.status, statusDetail);
         const group = getGroup(match.round_label, match.group_label);
         const matchPreds = predsByMatch.get(match.id) || [];
@@ -193,7 +207,7 @@ const LiveTab = ({ groupId, currentUserId }: Props) => {
                 <TeamLogo logo={match.home_team_logo} name={match.home_team} />
               </span>
               <span className="font-display text-3xl sm:text-4xl text-destructive tabular-nums">
-                {match.home_score ?? 0} – {match.away_score ?? 0}
+                {liveHome} – {liveAway}
               </span>
               <span className="flex min-w-0 items-center justify-start gap-2 text-left font-body font-semibold text-foreground text-sm sm:text-base">
                 <TeamLogo logo={match.away_team_logo} name={match.away_team} />
@@ -230,7 +244,7 @@ const LiveTab = ({ groupId, currentUserId }: Props) => {
                         <span className="font-display text-sm text-foreground tabular-nums shrink-0">
                           {p.predicted_home_score} - {p.predicted_away_score}
                         </span>
-                        <PointsHint pred={p} home={match.home_score} away={match.away_score} />
+                        <PointsHint pred={p} home={liveHome} away={liveAway} />
                       </div>
                     );
                   })}
