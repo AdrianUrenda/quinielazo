@@ -31,6 +31,8 @@ const PointsHint = ({ pred, home, away }: { pred: { predicted_home_score: number
 
 const LiveTab = ({ groupId, currentUserId }: Props) => {
   const queryClient = useQueryClient();
+  const [liveOverlay, setLiveOverlay] = useState<Record<number, { home_score: number; away_score: number; status_detail: string }>>({});
+
   const { data: matches } = useQuery({
     queryKey: ["live-matches"],
     queryFn: async () => {
@@ -44,22 +46,31 @@ const LiveTab = ({ groupId, currentUserId }: Props) => {
     refetchInterval: 30_000,
   });
 
-  const syncMatches = useMutation({
+  const syncLive = useMutation({
     mutationFn: async () => {
       const { data, error } = await supabase.functions.invoke("api-football-fixtures", {
-        body: { action: "sync-matches" },
+        body: { action: "sync-live" },
       });
       if (error) throw error;
-      return data as { fixturesSynced?: number };
+      return data as { liveScores?: Array<{ api_fixture_id: number; home_score: number; away_score: number; status_detail: string }>; fixturesSynced?: number };
     },
     onSuccess: (data) => {
-      toast.success(`Resultados actualizados: ${data.fixturesSynced ?? 0} partidos`);
-      queryClient.invalidateQueries({ queryKey: ["live-matches"] });
-      queryClient.invalidateQueries({ queryKey: ["live-predictions"] });
-      queryClient.invalidateQueries({ queryKey: ["matches-all-api-football"] });
-      queryClient.invalidateQueries({ queryKey: ["leaderboard", groupId] });
+      const map: Record<number, { home_score: number; away_score: number; status_detail: string }> = {};
+      (data.liveScores || []).forEach((s) => {
+        map[s.api_fixture_id] = { home_score: s.home_score, away_score: s.away_score, status_detail: s.status_detail };
+      });
+      setLiveOverlay(map);
+      const count = (data.liveScores || []).length;
+      toast.success(count > 0 ? `${count} ${count === 1 ? "partido actualizado" : "partidos actualizados"}` : "No hay partidos en vivo");
+      // If any match sealed (finished), refresh DB-backed views.
+      if ((data.fixturesSynced ?? 0) > 0) {
+        queryClient.invalidateQueries({ queryKey: ["live-matches"] });
+        queryClient.invalidateQueries({ queryKey: ["live-predictions"] });
+        queryClient.invalidateQueries({ queryKey: ["matches-all-api-football"] });
+        queryClient.invalidateQueries({ queryKey: ["leaderboard", groupId] });
+      }
     },
-    onError: () => toast.error("No pudimos actualizar API-Football. Intenta de nuevo."),
+    onError: () => toast.error("No pudimos actualizar los partidos en vivo. Intenta de nuevo."),
   });
 
   const liveMatches = useMemo(
