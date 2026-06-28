@@ -168,7 +168,10 @@ const LiveTab = ({ groupId, currentUserId }: Props) => {
       </div>
 
       {liveMatches.map((match, idx) => {
-        const statusDetail = match.status_detail || "LIVE";
+        const overlay = match.api_fixture_id ? liveOverlay[match.api_fixture_id] : undefined;
+        const liveHome = overlay?.home_score ?? match.home_score ?? 0;
+        const liveAway = overlay?.away_score ?? match.away_score ?? 0;
+        const statusDetail = overlay?.status_detail || match.status_detail || "LIVE";
         const badge = getStatusBadge(match.status, statusDetail);
         const group = getGroup(match.round_label, match.group_label);
         const matchPreds = predsByMatch.get(match.id) || [];
