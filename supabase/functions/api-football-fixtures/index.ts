@@ -286,6 +286,12 @@ const syncMatches = async (fixtures: any[], teamGroupMap: Record<string, string>
       }
     }
 
+    // CRITICAL: never persist live (in-progress) scores. Only final scores
+    // are written to the DB. Live snapshots are returned by sync-live and
+    // displayed transiently in the UI without ever touching matches table.
+    const persistedHomeScore = status === "finished" ? homeScore : null;
+    const persistedAwayScore = status === "finished" ? awayScore : null;
+
     // For sealed rows, only write cosmetic columns the protect_sealed_matches
     // trigger allows. For everything else, write the full identity payload.
     const row = isSealed
@@ -312,8 +318,8 @@ const syncMatches = async (fixtures: any[], teamGroupMap: Record<string, string>
           city: fixture?.fixture?.venue?.city ?? "",
           status,
           status_detail: statusDetail,
-          home_score: homeScore,
-          away_score: awayScore,
+          home_score: persistedHomeScore,
+          away_score: persistedAwayScore,
           last_synced_at: new Date().toISOString(),
         };
 
