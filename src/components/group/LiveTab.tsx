@@ -207,7 +207,7 @@ const LiveTab = ({ groupId, currentUserId }: Props) => {
                 <TeamLogo logo={match.home_team_logo} name={match.home_team} />
               </span>
               <span className="font-display text-3xl sm:text-4xl text-destructive tabular-nums">
-                {match.home_score ?? 0} – {match.away_score ?? 0}
+                {liveHome} – {liveAway}
               </span>
               <span className="flex min-w-0 items-center justify-start gap-2 text-left font-body font-semibold text-foreground text-sm sm:text-base">
                 <TeamLogo logo={match.away_team_logo} name={match.away_team} />
