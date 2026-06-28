@@ -262,13 +262,15 @@ const syncMatches = async (fixtures: any[], teamGroupMap: Record<string, string>
     // fixture would change identity-defining fields (stage / teams / kickoff),
     // skip this update entirely. The DB trigger is the ultimate backstop;
     // bailing out here keeps the worker from logging exceptions on every run.
-    if (existing?.id) {
-      const isSealed = existing.status === "finished" || existing.home_score !== null || existing.away_score !== null;
+    const isSealed = existing?.id
+      ? (existing.status === "finished" || existing.home_score !== null || existing.away_score !== null)
+      : false;
+    if (existing?.id && isSealed) {
       const identityShift =
         (existing.stage && existing.stage !== stage) ||
         (existing.home_team && existing.home_team !== homeName) ||
         (existing.away_team && existing.away_team !== awayName);
-      if (isSealed && identityShift) {
+      if (identityShift) {
         sealedRowsSkipped++;
         console.warn(
           `Skipping sealed match ${existing.id} (${existing.home_team} vs ${existing.away_team}, stage=${existing.stage}, status=${existing.status}) — incoming fixture ${apiFixtureId} (${homeName} vs ${awayName}, stage=${stage}) would mutate identity.`,
@@ -277,25 +279,36 @@ const syncMatches = async (fixtures: any[], teamGroupMap: Record<string, string>
       }
     }
 
-    const row = {
-      api_fixture_id: apiFixtureId,
-      match_number: existing?.match_number ?? nextMatchNumber++,
-      stage,
-      group_label: derivedGroup,
-      round_label: round,
-      home_team: homeName,
-      away_team: awayName,
-      home_team_logo: fixture?.teams?.home?.logo ?? null,
-      away_team_logo: fixture?.teams?.away?.logo ?? null,
-      kickoff_utc: fixture?.fixture?.date,
-      stadium: fixture?.fixture?.venue?.name ?? "",
-      city: fixture?.fixture?.venue?.city ?? "",
-      status,
-      status_detail: statusDetail,
-      home_score: homeScore,
-      away_score: awayScore,
-      last_synced_at: new Date().toISOString(),
-    };
+    // For sealed rows, only write cosmetic columns the protect_sealed_matches
+    // trigger allows. For everything else, write the full identity payload.
+    const row = isSealed
+      ? {
+          home_team_logo: fixture?.teams?.home?.logo ?? null,
+          away_team_logo: fixture?.teams?.away?.logo ?? null,
+          stadium: fixture?.fixture?.venue?.name ?? "",
+          city: fixture?.fixture?.venue?.city ?? "",
+          status_detail: statusDetail,
+          last_synced_at: new Date().toISOString(),
+        }
+      : {
+          api_fixture_id: apiFixtureId,
+          match_number: existing?.match_number ?? nextMatchNumber++,
+          stage,
+          group_label: derivedGroup,
+          round_label: round,
+          home_team: homeName,
+          away_team: awayName,
+          home_team_logo: fixture?.teams?.home?.logo ?? null,
+          away_team_logo: fixture?.teams?.away?.logo ?? null,
+          kickoff_utc: fixture?.fixture?.date,
+          stadium: fixture?.fixture?.venue?.name ?? "",
+          city: fixture?.fixture?.venue?.city ?? "",
+          status,
+          status_detail: statusDetail,
+          home_score: homeScore,
+          away_score: awayScore,
+          last_synced_at: new Date().toISOString(),
+        };
 
     // If the fixture's teams just got resolved (placeholder -> real team, or
     // any team change) and the match hasn't started yet, purge stale
