@@ -337,7 +337,7 @@ const syncMatches = async (fixtures: any[], teamGroupMap: Record<string, string>
     }
   }
 
-  return { fixturesSynced, predictionsScored, stalePredictionsCleared };
+  return { fixturesSynced, predictionsScored, stalePredictionsCleared, sealedRowsSkipped };
 };
 
 Deno.serve(async (req) => {
