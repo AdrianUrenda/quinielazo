@@ -93,17 +93,24 @@ const STALE_THRESHOLD_MS = 2 * 60 * 60 * 1000; // 2 hours after kickoff
 
 const refreshStaleFixtures = async (apiKey: string, fixtures: any[]): Promise<any[]> => {
   const now = Date.now();
-  const stale = fixtures.filter((f) => {
+  // Re-fetch by ID for any fixture where the cached aggregate may be wrong:
+  //  - still not marked finished but kickoff was >2h ago (stuck on "1H"/"2H")
+  //  - newly marked finished but DB has no score yet (first sealing — verify
+  //    against the fresh per-ID endpoint to avoid sealing a stale cached score
+  //    that the upstream aggregate may return mid-match)
+  const needsRefresh = fixtures.filter((f) => {
     const status = f?.fixture?.status?.short ?? "NS";
-    if (FINISHED.has(status)) return false;
     const kickoff = new Date(f?.fixture?.date ?? 0).getTime();
-    return Number.isFinite(kickoff) && kickoff > 0 && now - kickoff > STALE_THRESHOLD_MS;
+    const kickoffStale = Number.isFinite(kickoff) && kickoff > 0 && now - kickoff > STALE_THRESHOLD_MS;
+    if (!FINISHED.has(status)) return kickoffStale;
+    // FINISHED in cache → always re-validate by ID; sealing is one-way.
+    return true;
   });
-  if (stale.length === 0) return fixtures;
+  if (needsRefresh.length === 0) return fixtures;
 
   const replacements = new Map<number, any>();
   await Promise.all(
-    stale.map(async (f) => {
+    needsRefresh.map(async (f) => {
       const id = f?.fixture?.id;
       if (!id) return;
       try {
