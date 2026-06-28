@@ -147,7 +147,7 @@ const DemoLiveTab = ({ currentUserId }: Props) => {
           disabled={syncLiguilla.isPending}
         >
           <RefreshCw className={`h-3.5 w-3.5 ${syncLiguilla.isPending ? "animate-spin" : ""}`} />
-          Actualizar resultados
+          Actualizar partidos
         </Button>
       </div>
 
