@@ -648,6 +648,7 @@ export type Database = {
         | "join_rejected"
         | "match_scored"
         | "prediction_reminder"
+        | "system_announcement"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -794,6 +795,7 @@ export const Constants = {
         "join_rejected",
         "match_scored",
         "prediction_reminder",
+        "system_announcement",
       ],
     },
   },
