@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Radio, RefreshCw, Trophy } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
-import { liveStatuses, getStatusBadge } from "@/lib/matchCalendar";
+import { liveStatuses, finalStatuses, getStatusBadge } from "@/lib/matchCalendar";
 
 type PublicProfile = { id: string; display_name: string; avatar_url: string | null };
 
@@ -69,6 +69,7 @@ const DemoLiveTab = ({ currentUserId }: Props) => {
     () =>
       (matches || []).filter((m) => {
         const detail = m.status_detail || "";
+        if (m.status === "finished" || finalStatuses.has(detail)) return false;
         return m.status === "live" || liveStatuses.has(detail);
       }),
     [matches],
