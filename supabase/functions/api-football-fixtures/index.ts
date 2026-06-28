@@ -221,16 +221,17 @@ const syncMatches = async (fixtures: any[], teamGroupMap: Record<string, string>
 
   const byFixtureId = new Map((existingMatches || []).filter((m: any) => m.api_fixture_id).map((m: any) => [m.api_fixture_id, m]));
   // Placeholder knockout rows seeded without api_fixture_id (e.g. "2A vs 2B").
-  // We claim them by (stage, kickoff_utc) so a real fixture binds to the placeholder
-  // row instead of inserting a duplicate alongside it.
+  // We claim them by (stage, kickoff_utc) ONLY when the existing row is still
+  // unplayed and unscored — never adopt a sealed/finished row into another fixture.
   const placeholderByStageTime = new Map<string, any>();
   for (const m of existingMatches || []) {
-    if (!m.api_fixture_id && m.stage && m.kickoff_utc) {
+    if (!m.api_fixture_id && m.stage && m.kickoff_utc && m.status !== "finished" && m.home_score === null && m.away_score === null) {
       placeholderByStageTime.set(`${m.stage}|${new Date(m.kickoff_utc).toISOString()}`, m);
     }
   }
   let nextMatchNumber = Math.max(0, ...(existingMatches || []).map((m: any) => m.match_number || 0)) + 1;
   let stalePredictionsCleared = 0;
+  let sealedRowsSkipped = 0;
 
   for (const fixture of sortedFixtures) {
     const apiFixtureId = fixture?.fixture?.id;
@@ -255,6 +256,27 @@ const syncMatches = async (fixtures: any[], teamGroupMap: Record<string, string>
     const derivedGroup = stage === "group"
       ? (teamGroupMap[homeName] || teamGroupMap[awayName] || getGroup(round))
       : null;
+
+    // GUARDRAIL: if the matched existing row is "sealed" (already finished,
+    // or has scored predictions, or has any non-null score) AND the incoming
+    // fixture would change identity-defining fields (stage / teams / kickoff),
+    // skip this update entirely. The DB trigger is the ultimate backstop;
+    // bailing out here keeps the worker from logging exceptions on every run.
+    if (existing?.id) {
+      const isSealed = existing.status === "finished" || existing.home_score !== null || existing.away_score !== null;
+      const identityShift =
+        (existing.stage && existing.stage !== stage) ||
+        (existing.home_team && existing.home_team !== homeName) ||
+        (existing.away_team && existing.away_team !== awayName);
+      if (isSealed && identityShift) {
+        sealedRowsSkipped++;
+        console.warn(
+          `Skipping sealed match ${existing.id} (${existing.home_team} vs ${existing.away_team}, stage=${existing.stage}, status=${existing.status}) — incoming fixture ${apiFixtureId} (${homeName} vs ${awayName}, stage=${stage}) would mutate identity.`,
+        );
+        continue;
+      }
+    }
+
     const row = {
       api_fixture_id: apiFixtureId,
       match_number: existing?.match_number ?? nextMatchNumber++,
@@ -278,18 +300,29 @@ const syncMatches = async (fixtures: any[], teamGroupMap: Record<string, string>
     // If the fixture's teams just got resolved (placeholder -> real team, or
     // any team change) and the match hasn't started yet, purge stale
     // predictions that were saved against the previous team assignment.
+    // SAFETY: only purge if NO prediction on this match has earned points.
     if (existing?.id && status === "upcoming") {
       const prevHome = (existing.home_team || "").trim();
       const prevAway = (existing.away_team || "").trim();
       const teamsChanged = (prevHome && prevHome !== homeName) || (prevAway && prevAway !== awayName);
       if (teamsChanged) {
-        const { count, error: delError } = await supabase
+        const { count: scoredCount, error: scoredErr } = await supabase
           .from("predictions")
-          .delete({ count: "exact" })
-          .eq("match_id", existing.id);
-        if (delError) throw delError;
-        stalePredictionsCleared += count ?? 0;
-        console.log(`Cleared ${count ?? 0} stale predictions for match ${existing.id} (${prevHome} vs ${prevAway} -> ${homeName} vs ${awayName})`);
+          .select("id", { count: "exact", head: true })
+          .eq("match_id", existing.id)
+          .gt("points_awarded", 0);
+        if (scoredErr) throw scoredErr;
+        if ((scoredCount ?? 0) > 0) {
+          console.warn(`Refusing to purge predictions for match ${existing.id}: ${scoredCount} have points_awarded > 0.`);
+        } else {
+          const { count, error: delError } = await supabase
+            .from("predictions")
+            .delete({ count: "exact" })
+            .eq("match_id", existing.id);
+          if (delError) throw delError;
+          stalePredictionsCleared += count ?? 0;
+          console.log(`Cleared ${count ?? 0} stale predictions for match ${existing.id} (${prevHome} vs ${prevAway} -> ${homeName} vs ${awayName})`);
+        }
       }
     }
 
@@ -304,7 +337,7 @@ const syncMatches = async (fixtures: any[], teamGroupMap: Record<string, string>
     }
   }
 
-  return { fixturesSynced, predictionsScored, stalePredictionsCleared };
+  return { fixturesSynced, predictionsScored, stalePredictionsCleared, sealedRowsSkipped };
 };
 
 Deno.serve(async (req) => {

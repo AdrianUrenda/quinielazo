@@ -309,6 +309,63 @@ export type Database = {
         }
         Relationships: []
       }
+      matches_archive: {
+        Row: {
+          api_fixture_id: number | null
+          archive_id: number
+          away_score: number | null
+          away_team: string | null
+          group_label: string | null
+          home_score: number | null
+          home_team: string | null
+          id: string
+          kickoff_utc: string | null
+          match_number: number | null
+          payload: Json
+          round_label: string | null
+          snapshot_at: string
+          stage: string | null
+          status: string | null
+          status_detail: string | null
+        }
+        Insert: {
+          api_fixture_id?: number | null
+          archive_id?: number
+          away_score?: number | null
+          away_team?: string | null
+          group_label?: string | null
+          home_score?: number | null
+          home_team?: string | null
+          id: string
+          kickoff_utc?: string | null
+          match_number?: number | null
+          payload: Json
+          round_label?: string | null
+          snapshot_at?: string
+          stage?: string | null
+          status?: string | null
+          status_detail?: string | null
+        }
+        Update: {
+          api_fixture_id?: number | null
+          archive_id?: number
+          away_score?: number | null
+          away_team?: string | null
+          group_label?: string | null
+          home_score?: number | null
+          home_team?: string | null
+          id?: string
+          kickoff_utc?: string | null
+          match_number?: number | null
+          payload?: Json
+          round_label?: string | null
+          snapshot_at?: string
+          stage?: string | null
+          status?: string | null
+          status_detail?: string | null
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           created_at: string
@@ -389,6 +446,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      predictions_archive: {
+        Row: {
+          archive_id: number
+          group_id: string | null
+          id: string
+          match_id: string
+          payload: Json
+          points_awarded: number | null
+          predicted_away_score: number | null
+          predicted_home_score: number | null
+          snapshot_at: string
+          user_id: string
+        }
+        Insert: {
+          archive_id?: number
+          group_id?: string | null
+          id: string
+          match_id: string
+          payload: Json
+          points_awarded?: number | null
+          predicted_away_score?: number | null
+          predicted_home_score?: number | null
+          snapshot_at?: string
+          user_id: string
+        }
+        Update: {
+          archive_id?: number
+          group_id?: string | null
+          id?: string
+          match_id?: string
+          payload?: Json
+          points_awarded?: number | null
+          predicted_away_score?: number | null
+          predicted_home_score?: number | null
+          snapshot_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
@@ -513,6 +609,13 @@ export type Database = {
       request_group_membership: {
         Args: { _access_code?: string; _group_id: string }
         Returns: undefined
+      }
+      snapshot_matches_and_predictions: {
+        Args: never
+        Returns: {
+          matches_snapshotted: number
+          predictions_snapshotted: number
+        }[]
       }
       update_group_member_status: {
         Args: {
