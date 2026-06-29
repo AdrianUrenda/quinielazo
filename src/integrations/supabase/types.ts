@@ -366,6 +366,48 @@ export type Database = {
         }
         Relationships: []
       }
+      mutation_audit_log: {
+        Row: {
+          actor_role: string | null
+          actor_uid: string | null
+          application_name: string | null
+          id: number
+          new_row: Json | null
+          occurred_at: string
+          old_row: Json | null
+          operation: string
+          row_pk: string | null
+          session_user_name: string | null
+          table_name: string
+        }
+        Insert: {
+          actor_role?: string | null
+          actor_uid?: string | null
+          application_name?: string | null
+          id?: number
+          new_row?: Json | null
+          occurred_at?: string
+          old_row?: Json | null
+          operation: string
+          row_pk?: string | null
+          session_user_name?: string | null
+          table_name: string
+        }
+        Update: {
+          actor_role?: string | null
+          actor_uid?: string | null
+          application_name?: string | null
+          id?: number
+          new_row?: Json | null
+          occurred_at?: string
+          old_row?: Json | null
+          operation?: string
+          row_pk?: string | null
+          session_user_name?: string | null
+          table_name?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           created_at: string
