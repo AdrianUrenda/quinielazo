@@ -223,7 +223,7 @@ const syncMatches = async (fixtures: any[], teamGroupMap: Record<string, string>
 
   const { data: existingMatches, error: existingError } = await supabase
     .from("matches")
-    .select("id, match_number, api_fixture_id, home_team, away_team, status, stage, kickoff_utc");
+    .select("id, match_number, api_fixture_id, home_team, away_team, status, stage, kickoff_utc, home_score, away_score");
   if (existingError) throw existingError;
 
   const byFixtureId = new Map((existingMatches || []).filter((m: any) => m.api_fixture_id).map((m: any) => [m.api_fixture_id, m]));
