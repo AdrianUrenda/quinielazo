@@ -323,34 +323,23 @@ const syncMatches = async (fixtures: any[], teamGroupMap: Record<string, string>
           last_synced_at: new Date().toISOString(),
         };
 
-    // If the fixture's teams just got resolved (placeholder -> real team, or
-    // any team change) and the match hasn't started yet, purge stale
-    // predictions that were saved against the previous team assignment.
-    // SAFETY: only purge if NO prediction on this match has earned points.
+    // SAFETY: NEVER auto-delete predictions from the sync worker. Earlier versions
+    // purged predictions whenever team names changed on an upcoming match (e.g.
+    // placeholder "TBD" → real team, accent/normalization differences). That logic
+    // destroyed valid user predictions in knockout rounds. We now only log a warning
+    // and leave predictions intact. Manual cleanup requires an explicit override
+    // (app.allow_scored_delete=on) via a one-off SQL session.
     if (existing?.id && status === "upcoming") {
       const prevHome = (existing.home_team || "").trim();
       const prevAway = (existing.away_team || "").trim();
       const teamsChanged = (prevHome && prevHome !== homeName) || (prevAway && prevAway !== awayName);
       if (teamsChanged) {
-        const { count: scoredCount, error: scoredErr } = await supabase
-          .from("predictions")
-          .select("id", { count: "exact", head: true })
-          .eq("match_id", existing.id)
-          .gt("points_awarded", 0);
-        if (scoredErr) throw scoredErr;
-        if ((scoredCount ?? 0) > 0) {
-          console.warn(`Refusing to purge predictions for match ${existing.id}: ${scoredCount} have points_awarded > 0.`);
-        } else {
-          const { count, error: delError } = await supabase
-            .from("predictions")
-            .delete({ count: "exact" })
-            .eq("match_id", existing.id);
-          if (delError) throw delError;
-          stalePredictionsCleared += count ?? 0;
-          console.log(`Cleared ${count ?? 0} stale predictions for match ${existing.id} (${prevHome} vs ${prevAway} -> ${homeName} vs ${awayName})`);
-        }
+        console.warn(
+          `Teams changed on match ${existing.id} (${prevHome} vs ${prevAway} -> ${homeName} vs ${awayName}). Predictions LEFT INTACT by design.`,
+        );
       }
     }
+
 
     const result = existing?.id
       ? await supabase.from("matches").update(row).eq("id", existing.id).select("id").single()
