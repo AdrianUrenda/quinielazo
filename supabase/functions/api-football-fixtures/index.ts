@@ -270,7 +270,7 @@ const syncMatches = async (fixtures: any[], teamGroupMap: Record<string, string>
     // skip this update entirely. The DB trigger is the ultimate backstop;
     // bailing out here keeps the worker from logging exceptions on every run.
     const isSealed = existing?.id
-      ? (existing.status === "finished" || existing.home_score !== null || existing.away_score !== null)
+      ? (existing.status === "finished" || existing.home_score != null || existing.away_score != null)
       : false;
     if (existing?.id && isSealed) {
       const identityShift =
