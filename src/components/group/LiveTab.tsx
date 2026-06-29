@@ -1,13 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useMemo, useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMemo } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Radio, RefreshCw, Trophy } from "lucide-react";
+import { Radio, Eye, Trophy } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
-import { liveStatuses, finalStatuses, getGroup, getStage, getStageLabel, getStatusBadge } from "@/lib/matchCalendar";
+import { liveStatuses, finalStatuses, getGroup, getStage, getStageLabel } from "@/lib/matchCalendar";
 
 type PublicProfile = { id: string; display_name: string; avatar_url: string | null };
 
@@ -19,19 +19,8 @@ interface Props {
 const TeamLogo = ({ logo, name }: { logo?: string | null; name: string }) =>
   logo ? <img src={logo} alt={`Escudo de ${name}`} className="h-6 w-6 rounded-full object-contain" loading="lazy" /> : null;
 
-const PointsHint = ({ pred, home, away }: { pred: { predicted_home_score: number; predicted_away_score: number }; home: number | null; away: number | null }) => {
-  if (home === null || away === null) return null;
-  const exact = pred.predicted_home_score === home && pred.predicted_away_score === away;
-  const predSign = Math.sign(pred.predicted_home_score - pred.predicted_away_score);
-  const actualSign = Math.sign(home - away);
-  if (exact) return <Badge className="border-primary/20 bg-primary/10 text-[10px] text-primary">+3 pts en vivo</Badge>;
-  if (predSign === actualSign) return <Badge className="border-secondary/20 bg-secondary/10 text-[10px] text-secondary-foreground">+1 pt en vivo</Badge>;
-  return <Badge variant="outline" className="bg-muted/50 text-[10px] text-muted-foreground">0 pts</Badge>;
-};
-
 const LiveTab = ({ groupId, currentUserId }: Props) => {
   const queryClient = useQueryClient();
-  const [liveOverlay, setLiveOverlay] = useState<Record<number, { home_score: number; away_score: number; status_detail: string }>>({});
 
   const { data: matches } = useQuery({
     queryKey: ["live-matches"],
@@ -43,34 +32,7 @@ const LiveTab = ({ groupId, currentUserId }: Props) => {
       if (error) throw error;
       return (data || []) as any[];
     },
-    refetchInterval: 30_000,
-  });
-
-  const syncLive = useMutation({
-    mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke("api-football-fixtures", {
-        body: { action: "sync-live" },
-      });
-      if (error) throw error;
-      return data as { liveScores?: Array<{ api_fixture_id: number; home_score: number; away_score: number; status_detail: string }>; fixturesSynced?: number };
-    },
-    onSuccess: (data) => {
-      const map: Record<number, { home_score: number; away_score: number; status_detail: string }> = {};
-      (data.liveScores || []).forEach((s) => {
-        map[s.api_fixture_id] = { home_score: s.home_score, away_score: s.away_score, status_detail: s.status_detail };
-      });
-      setLiveOverlay(map);
-      const count = (data.liveScores || []).length;
-      toast.success(count > 0 ? `${count} ${count === 1 ? "partido actualizado" : "partidos actualizados"}` : "No hay partidos en vivo");
-      // If any match sealed (finished), refresh DB-backed views.
-      if ((data.fixturesSynced ?? 0) > 0) {
-        queryClient.invalidateQueries({ queryKey: ["live-matches"] });
-        queryClient.invalidateQueries({ queryKey: ["live-predictions"] });
-        queryClient.invalidateQueries({ queryKey: ["matches-all-api-football"] });
-        queryClient.invalidateQueries({ queryKey: ["leaderboard", groupId] });
-      }
-    },
-    onError: () => toast.error("No pudimos actualizar los partidos en vivo. Intenta de nuevo."),
+    refetchInterval: 60_000,
   });
 
   const liveMatches = useMemo(
@@ -116,7 +78,7 @@ const LiveTab = ({ groupId, currentUserId }: Props) => {
       return (data || []) as any[];
     },
     enabled: matchIds.length > 0,
-    refetchInterval: 30_000,
+    refetchInterval: 60_000,
   });
 
   const predsByMatch = useMemo(() => {
@@ -131,14 +93,39 @@ const LiveTab = ({ groupId, currentUserId }: Props) => {
 
   const memberMap = useMemo(() => new Map((approvedMembers || []).map((p) => [p.id, p])), [approvedMembers]);
 
+  const handleShowPredictions = async () => {
+    await queryClient.invalidateQueries({ queryKey: ["live-matches"] });
+    await queryClient.invalidateQueries({ queryKey: ["live-predictions"] });
+    const refreshed = (queryClient.getQueryData<any[]>(["live-matches"]) || []).filter((m) => {
+      const detail = m.status_detail || "";
+      if (m.status === "finished" || finalStatuses.has(detail)) return false;
+      return m.status === "live" || liveStatuses.has(detail);
+    });
+    if (refreshed.length === 0) toast.info("No hay partidos en curso por ahora.");
+    else toast.success("Predicciones actualizadas");
+  };
+
+  const ShowPredictionsButton = (
+    <Button
+      variant="outline"
+      size="sm"
+      className="gap-2"
+      onClick={handleShowPredictions}
+    >
+      <Eye className="h-3.5 w-3.5" />
+      Mostrar predicciones
+    </Button>
+  );
+
   if (liveMatches.length === 0) {
     return (
-      <div className="card-elevated rounded-2xl p-10 text-center">
-        <Radio className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-        <h3 className="text-lg font-display text-foreground mb-2">NO HAY PARTIDOS EN VIVO</h3>
+      <div className="card-elevated rounded-2xl p-10 text-center space-y-4">
+        <Radio className="w-12 h-12 text-muted-foreground mx-auto" />
+        <h3 className="text-lg font-display text-foreground">NO HAY PARTIDOS EN VIVO</h3>
         <p className="text-sm text-muted-foreground font-body">
-          Vuelve cuando haya un partido en curso para seguir el marcador y las predicciones de tu grupo en tiempo real.
+          Cuando comience un partido podrás ver aquí las predicciones del resto del grupo.
         </p>
+        <div className="flex justify-center">{ShowPredictionsButton}</div>
       </div>
     );
   }
@@ -152,27 +139,13 @@ const LiveTab = ({ groupId, currentUserId }: Props) => {
             <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-destructive" />
           </span>
           <span className="text-xs font-display tracking-wider text-destructive">
-            {liveMatches.length} {liveMatches.length === 1 ? "PARTIDO EN VIVO" : "PARTIDOS EN VIVO"} · ACTUALIZA CADA 30s
+            {liveMatches.length} {liveMatches.length === 1 ? "PARTIDO EN CURSO" : "PARTIDOS EN CURSO"}
           </span>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-2 border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
-          onClick={() => syncLive.mutate()}
-          disabled={syncLive.isPending}
-        >
-          <RefreshCw className={`h-3.5 w-3.5 ${syncLive.isPending ? "animate-spin" : ""}`} />
-          Actualizar partidos
-        </Button>
+        {ShowPredictionsButton}
       </div>
 
       {liveMatches.map((match, idx) => {
-        const overlay = match.api_fixture_id ? liveOverlay[match.api_fixture_id] : undefined;
-        const liveHome = overlay?.home_score ?? match.home_score ?? 0;
-        const liveAway = overlay?.away_score ?? match.away_score ?? 0;
-        const statusDetail = overlay?.status_detail || match.status_detail || "LIVE";
-        const badge = getStatusBadge(match.status, statusDetail);
         const group = getGroup(match.round_label, match.group_label);
         const matchPreds = predsByMatch.get(match.id) || [];
         const sorted = [...matchPreds].sort((a, b) => {
@@ -196,8 +169,8 @@ const LiveTab = ({ groupId, currentUserId }: Props) => {
                   {group ? `Grupo ${group}` : getStageLabel(match.round_label, match.stage)}
                 </span>
               </div>
-              <Badge variant="outline" className={`shrink-0 text-[10px] ${badge.className}`}>
-                {badge.text}{statusDetail && statusDetail !== "LIVE" ? ` · ${statusDetail}` : ""}
+              <Badge variant="outline" className="shrink-0 text-[10px] border-destructive/40 text-destructive bg-destructive/5">
+                EN VIVO
               </Badge>
             </div>
 
@@ -206,8 +179,8 @@ const LiveTab = ({ groupId, currentUserId }: Props) => {
                 <span className="truncate">{match.home_team}</span>
                 <TeamLogo logo={match.home_team_logo} name={match.home_team} />
               </span>
-              <span className="font-display text-3xl sm:text-4xl text-destructive tabular-nums">
-                {liveHome} – {liveAway}
+              <span className="font-display text-base sm:text-lg text-muted-foreground tabular-nums px-2">
+                vs
               </span>
               <span className="flex min-w-0 items-center justify-start gap-2 text-left font-body font-semibold text-foreground text-sm sm:text-base">
                 <TeamLogo logo={match.away_team_logo} name={match.away_team} />
@@ -244,7 +217,6 @@ const LiveTab = ({ groupId, currentUserId }: Props) => {
                         <span className="font-display text-sm text-foreground tabular-nums shrink-0">
                           {p.predicted_home_score} - {p.predicted_away_score}
                         </span>
-                        <PointsHint pred={p} home={liveHome} away={liveAway} />
                       </div>
                     );
                   })}
