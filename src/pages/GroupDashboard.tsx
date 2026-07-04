@@ -149,7 +149,7 @@ const GroupDashboard = () => {
               </p>
             </div>
           ) : (
-            <Tabs defaultValue="predictions" className="space-y-4">
+            <Tabs key={group.id} defaultValue="predictions" className="space-y-4">
               <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 h-auto sm:h-12 gap-1 p-1">
                 <TabsTrigger value="predictions" className="font-display tracking-wider text-xs gap-1.5">
                   <ClipboardList className="w-4 h-4" /> PREDICCIONES

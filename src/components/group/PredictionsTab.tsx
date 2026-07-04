@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { AlertCircle, ChevronDown, Filter, History, Info, Lock, MapPin, Radio, RefreshCw, Save, Trophy } from "lucide-react";
@@ -40,6 +40,10 @@ const PredictionsTab = ({ groupId, userId }: Props) => {
   const [scores, setScores] = useState<Record<string, { home: string; away: string }>>({});
   const [stageFilter, setStageFilter] = useState("all");
   const [groupFilter, setGroupFilter] = useState("all");
+
+  useEffect(() => {
+    setScores({});
+  }, [groupId]);
 
   const { data: matches, isLoading, isError, error, refetch, isFetching } = useQuery({
     queryKey: ["matches-all-api-football"],
